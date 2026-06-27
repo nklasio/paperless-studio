@@ -321,6 +321,8 @@ select {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-right: 1px solid var(--line);
   background: var(--paper);
 }
@@ -401,6 +403,7 @@ select {
 .list-toolbar {
   display: flex;
   align-items: flex-end;
+  flex: 0 0 auto;
   min-height: 82px;
   padding: 16px 17px 14px 19px;
   border-bottom: 1px solid var(--line-soft);
@@ -466,6 +469,7 @@ select {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   opacity: 1;
   transition: opacity 140ms ease;
 }
@@ -479,6 +483,7 @@ select {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
+  flex: 0 0 auto;
   min-height: 49px;
   padding: 7px 13px 7px 17px;
   border-top: 1px solid var(--line);
