@@ -16,9 +16,26 @@ export async function GET(request: NextRequest) {
   }
 
   const search = request.nextUrl.searchParams.get("query") ?? "";
-  const documentParams = new URLSearchParams({ page_size: "100" });
+  const requestedPage = Number(request.nextUrl.searchParams.get("page") ?? 1);
+  const requestedPageSize = Number(
+    request.nextUrl.searchParams.get("page_size") ?? 20,
+  );
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageSize =
+    Number.isInteger(requestedPageSize) && requestedPageSize > 0
+      ? Math.min(requestedPageSize, 50)
+      : 20;
+  const documentParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
   if (search.trim()) {
     documentParams.set("query", search.trim());
+  }
+  const documentId = request.nextUrl.searchParams.get("id");
+  if (documentId && /^\d+$/.test(documentId)) {
+    documentParams.set("id__in", documentId);
   }
   const headers = { Authorization: `Token ${config.token}` };
   const [documentResponse, correspondentResponse, typeResponse, tagResponse] =
@@ -29,22 +46,34 @@ export async function GET(request: NextRequest) {
       }),
       fetch(`${config.url}/api/correspondents/?page_size=1000`, {
         headers,
-        cache: "no-store",
+        next: { revalidate: 300 },
       }),
       fetch(`${config.url}/api/document_types/?page_size=1000`, {
         headers,
-        cache: "no-store",
+        next: { revalidate: 300 },
       }),
       fetch(`${config.url}/api/tags/?page_size=1000`, {
         headers,
-        cache: "no-store",
+        next: { revalidate: 300 },
       }),
     ]);
 
-  if (!documentResponse.ok) {
+  if (
+    !documentResponse.ok ||
+    !correspondentResponse.ok ||
+    !typeResponse.ok ||
+    !tagResponse.ok
+  ) {
     return NextResponse.json(
       { error: "Paperless request failed" },
-      { status: documentResponse.status },
+      {
+        status: [
+          documentResponse,
+          correspondentResponse,
+          typeResponse,
+          tagResponse,
+        ].find((response) => !response.ok)?.status,
+      },
     );
   }
 
@@ -111,7 +140,20 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  return NextResponse.json({ configured: true, results, metadata });
+  const count = Number(documentPayload.count ?? results.length);
+  return NextResponse.json({
+    configured: true,
+    results,
+    metadata,
+    pagination: {
+      count,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(count / pageSize)),
+      hasNext: Boolean(documentPayload.next),
+      hasPrevious: Boolean(documentPayload.previous),
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {

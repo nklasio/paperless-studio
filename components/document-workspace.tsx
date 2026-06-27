@@ -33,7 +33,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   availableTags,
@@ -47,6 +46,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   initialDocumentId?: number;
 };
+
+const PAGE_SIZE = 20;
 
 const viewLabels: Record<NavView, string> = {
   inbox: "Inbox",
@@ -80,10 +81,14 @@ const savedViews: Array<{
 ];
 
 export function DocumentWorkspace({ initialDocumentId }: Props) {
-  const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [documents, setDocuments] =
     useState<PaperlessDocument[]>(initialDocuments);
+  const [selectedDocument, setSelectedDocument] = useState(
+    initialDocuments.find((document) => document.id === initialDocumentId) ??
+      initialDocuments[0],
+  );
   const [activeView, setActiveView] = useState<NavView>("recent");
   const [correspondentOptions, setCorrespondentOptions] =
     useState(correspondents);
@@ -94,6 +99,20 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     initialDocumentId ?? initialDocuments[0].id,
   );
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    count: initialDocuments.length,
+    page: 1,
+    pageSize: PAGE_SIZE,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
+  });
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(
+    initialDocumentId !== undefined,
+  );
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -104,12 +123,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const [paperlessConnected, setPaperlessConnected] = useState(false);
 
   const selected =
-    documents.find((document) => document.id === selectedId) ?? documents[0];
+    documents.find((document) => document.id === selectedId) ??
+    selectedDocument;
 
   const visibleDocuments = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return documents.filter((document) => {
       const matchesQuery =
+        paperlessConnected ||
         !normalized ||
         [
           document.title,
@@ -129,24 +150,52 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
 
       return matchesQuery && matchesView;
     });
-  }, [activeView, documents, query]);
+  }, [activeView, documents, paperlessConnected, query]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/documents", { cache: "no-store" })
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+      setPage(1);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(PAGE_SIZE),
+    });
+    if (debouncedQuery) params.set("query", debouncedQuery);
+    if (initialDocumentId) params.set("id", String(initialDocumentId));
+
+    setLoadingDocuments(true);
+    fetch(`/api/documents?${params}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
       .then((response) => response.json())
       .then((payload: {
         configured?: boolean;
         results?: PaperlessDocument[];
+        pagination?: {
+          count: number;
+          page: number;
+          pageSize: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrevious: boolean;
+        };
         metadata?: {
           correspondents?: string[];
           documentTypes?: string[];
           tags?: string[];
         };
       }) => {
-        if (cancelled || !payload.configured || !payload.results?.length) return;
+        if (!payload.configured || !payload.results) return;
         setPaperlessConnected(true);
         setDocuments(payload.results);
+        if (payload.pagination) setPagination(payload.pagination);
         if (payload.metadata?.correspondents?.length) {
           setCorrespondentOptions(payload.metadata.correspondents);
         }
@@ -156,18 +205,29 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         if (payload.metadata?.tags?.length) {
           setTagOptions(payload.metadata.tags);
         }
-        const preferred = initialDocumentId
-          ? payload.results.find((document) => document.id === initialDocumentId)
-          : payload.results[0];
-        setSelectedId((preferred ?? payload.results[0]).id);
+        const preferred =
+          payload.results.find((document) => document.id === selectedId) ??
+          (initialDocumentId
+            ? payload.results.find(
+                (document) => document.id === initialDocumentId,
+              )
+            : payload.results[0]);
+        if (preferred) {
+          setSelectedId(preferred.id);
+          setSelectedDocument(preferred);
+        }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         // Demo documents are deliberately available for offline design review.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingDocuments(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [initialDocumentId]);
+  }, [debouncedQuery, initialDocumentId, page]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -195,11 +255,17 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   }, [toast]);
 
   function chooseDocument(id: number) {
+    const document = documents.find((item) => item.id === id);
     setSelectedId(id);
-    router.replace(`/documents/${id}`, { scroll: false });
+    if (document) setSelectedDocument(document);
+    setMobileDetailOpen(true);
+    window.history.pushState(null, "", `/documents/${id}`);
   }
 
   function updateDocument(patch: Partial<PaperlessDocument>) {
+    setSelectedDocument((current) =>
+      current.id === selected.id ? { ...current, ...patch } : current,
+    );
     setDocuments((current) =>
       current.map((document) =>
         document.id === selected.id ? { ...document, ...patch } : document,
@@ -262,7 +328,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     <main
       className={cn(
         "app-shell",
-        initialDocumentId !== undefined && "has-mobile-detail",
+        mobileDetailOpen && "has-mobile-detail",
       )}
     >
       <aside className={cn("sidebar", mobileNavOpen && "sidebar--open")}>
@@ -404,7 +470,12 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             <h1>{viewLabels[activeView]}</h1>
           </div>
           <div className="toolbar-actions">
-            <span>{visibleDocuments.length}</span>
+            <span>
+              {paperlessConnected &&
+              (activeView === "recent" || activeView === "all")
+                ? pagination.count
+                : visibleDocuments.length}
+            </span>
             <button className="icon-button" aria-label="Filter documents">
               <SlidersHorizontal size={16} />
             </button>
@@ -414,7 +485,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           </div>
         </div>
 
-        <div className="document-list">
+        <div
+          ref={listRef}
+          className={cn(
+            "document-list",
+            loadingDocuments && "is-loading",
+          )}
+          aria-busy={loadingDocuments}
+        >
           {visibleDocuments.length ? (
             visibleDocuments.map((document, index) => (
               <button
@@ -459,6 +537,45 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             </div>
           )}
         </div>
+        {paperlessConnected && pagination.count > pagination.pageSize ? (
+          <nav className="pagination" aria-label="Document pages">
+            <span className="pagination-range">
+              {(pagination.page - 1) * pagination.pageSize + 1}–
+              {Math.min(
+                pagination.page * pagination.pageSize,
+                pagination.count,
+              )}{" "}
+              of {pagination.count}
+            </span>
+            <span className="pagination-pages">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <div>
+              <button
+                onClick={() => {
+                  setPage((current) => Math.max(1, current - 1));
+                  listRef.current?.scrollTo({ top: 0 });
+                }}
+                disabled={!pagination.hasPrevious || loadingDocuments}
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              <button
+                onClick={() => {
+                  setPage((current) =>
+                    Math.min(pagination.totalPages, current + 1),
+                  );
+                  listRef.current?.scrollTo({ top: 0 });
+                }}
+                disabled={!pagination.hasNext || loadingDocuments}
+                aria-label="Next page"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </nav>
+        ) : null}
       </section>
 
       <section className="preview-column">
@@ -466,7 +583,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           <div className="preview-history">
             <button
               className="icon-button mobile-back"
-              onClick={() => router.push("/")}
+              onClick={() => {
+                setMobileDetailOpen(false);
+                window.history.pushState(null, "", "/");
+              }}
               aria-label="Back to documents"
             >
               <ArrowLeft size={18} />

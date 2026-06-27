@@ -466,6 +466,70 @@ select {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  opacity: 1;
+  transition: opacity 140ms ease;
+}
+
+.document-list.is-loading {
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.pagination {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 49px;
+  padding: 7px 13px 7px 17px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in oklch, var(--paper) 96%, transparent);
+}
+
+.pagination-range {
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-pages {
+  grid-row: 2;
+  color: var(--ink-faint);
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination > div {
+  display: flex;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.pagination button {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.pagination button + button {
+  border-left: 1px solid var(--line);
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+.pagination button:disabled {
+  color: var(--line);
+  cursor: default;
 }
 
 .document-row {
@@ -1619,12 +1683,13 @@ select {
   .app-shell {
     display: block;
     min-height: 100dvh;
-    height: auto;
-    overflow: visible;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .document-column {
-    min-height: 100dvh;
+    height: 100dvh;
+    min-height: 0;
     border: 0;
   }
 
