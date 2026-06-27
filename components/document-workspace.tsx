@@ -83,6 +83,8 @@ const savedViews: Array<{
 export function DocumentWorkspace({ initialDocumentId }: Props) {
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const previewStageRef = useRef<HTMLDivElement>(null);
+  const paperWrapRef = useRef<HTMLDivElement>(null);
   const [documents, setDocuments] =
     useState<PaperlessDocument[]>(initialDocuments);
   const [selectedDocument, setSelectedDocument] = useState(
@@ -253,6 +255,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     const timer = window.setTimeout(() => setToast(null), 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      previewStageRef.current?.scrollTo({ top: 0 });
+      paperWrapRef.current?.scrollTo({ top: 0 });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedId]);
 
   function chooseDocument(id: number) {
     const document = documents.find((item) => item.id === id);
@@ -626,12 +636,13 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         </header>
 
         <div
+          ref={previewStageRef}
           className={cn(
             "preview-stage",
             !inspectorOpen && "preview-stage--wide",
           )}
         >
-          <div className="paper-wrap">
+          <div ref={paperWrapRef} className="paper-wrap">
             {paperlessConnected ? (
               <iframe
                 className="pdf-preview"

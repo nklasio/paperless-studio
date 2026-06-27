@@ -848,8 +848,10 @@ select {
 
 .paper-wrap {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
   min-width: 0;
   overflow: auto;
   padding: clamp(22px, 4vw, 52px);
