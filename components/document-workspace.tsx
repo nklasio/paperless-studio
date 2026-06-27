@@ -48,6 +48,7 @@ type Props = {
 };
 
 const PAGE_SIZE = 20;
+type CustomView = { id: string; label: string; tag: string };
 
 const viewLabels: Record<NavView, string> = {
   inbox: "Inbox",
@@ -92,6 +93,19 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       initialDocuments[0],
   );
   const [activeView, setActiveView] = useState<NavView>("recent");
+  const [activeCustomView, setActiveCustomView] = useState<string | null>(null);
+  const [customViews, setCustomViews] = useState<CustomView[]>([]);
+  const [newViewOpen, setNewViewOpen] = useState(false);
+  const [newViewName, setNewViewName] = useState("");
+  const [newViewTag, setNewViewTag] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterCorrespondent, setFilterCorrespondent] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterTag, setFilterTag] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [correspondentOptions, setCorrespondentOptions] =
     useState(correspondents);
   const [documentTypeOptions, setDocumentTypeOptions] =
@@ -123,6 +137,8 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [paperlessConnected, setPaperlessConnected] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [previewPage, setPreviewPage] = useState(1);
 
   const selected =
     documents.find((document) => document.id === selectedId) ??
@@ -146,13 +162,43 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         activeView === "recent" ||
         (activeView === "inbox" && document.status === "review") ||
         (activeView === "review" && document.status === "review") ||
-        (activeView === "finance" && document.tags.includes("Finance")) ||
-        (activeView === "personal" && document.tags.includes("Personal")) ||
-        (activeView === "work" && document.tags.includes("Business"));
+        (activeView === "finance" &&
+          document.tags.some((tag) => ["Finance", "Finanzen"].includes(tag))) ||
+        (activeView === "personal" &&
+          document.tags.some((tag) =>
+            ["Personal", "Privatkunden"].includes(tag),
+          )) ||
+        (activeView === "work" &&
+          document.tags.some((tag) =>
+            ["Business", "Geschäftlich"].includes(tag),
+          ));
 
-      return matchesQuery && matchesView;
+      const customView = customViews.find((view) => view.id === activeCustomView);
+      const matchesCustom =
+        !customView || document.tags.includes(customView.tag);
+      const matchesFilters =
+        (!filterCorrespondent ||
+          document.correspondent === filterCorrespondent) &&
+        (!filterType || document.documentType === filterType) &&
+        (!filterTag || document.tags.includes(filterTag));
+
+      return matchesQuery && matchesView && matchesCustom && matchesFilters;
     });
-  }, [activeView, documents, paperlessConnected, query]);
+  }, [
+    activeCustomView,
+    activeView,
+    customViews,
+    documents,
+    filterCorrespondent,
+    filterTag,
+    filterType,
+    paperlessConnected,
+    query,
+  ]);
+
+  const selectedIndex = visibleDocuments.findIndex(
+    (document) => document.id === selected.id,
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -228,7 +274,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery, initialDocumentId, page]);
+  }, [debouncedQuery, initialDocumentId, page, refreshKey]);
 
   useEffect(() => {
     if (!initialDocumentId) return;
@@ -285,12 +331,59 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     return () => window.cancelAnimationFrame(frame);
   }, [selectedId]);
 
+  useEffect(() => {
+    setPreviewPage(1);
+    setMoreOpen(false);
+  }, [selectedId]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("paperless-custom-views");
+    if (!stored) return;
+    try {
+      setCustomViews(JSON.parse(stored) as CustomView[]);
+    } catch {
+      window.localStorage.removeItem("paperless-custom-views");
+    }
+  }, []);
+
   function chooseDocument(id: number) {
     const document = documents.find((item) => item.id === id);
     setSelectedId(id);
     if (document) setSelectedDocument(document);
     setMobileDetailOpen(true);
     window.history.pushState(null, "", `/documents/${id}`);
+  }
+
+  function moveDocument(direction: -1 | 1) {
+    const target = visibleDocuments[selectedIndex + direction];
+    if (target) chooseDocument(target.id);
+  }
+
+  function saveCustomView() {
+    if (!newViewName.trim() || !newViewTag) return;
+    const view = {
+      id: `${Date.now()}`,
+      label: newViewName.trim(),
+      tag: newViewTag,
+    };
+    const next = [...customViews, view];
+    setCustomViews(next);
+    window.localStorage.setItem("paperless-custom-views", JSON.stringify(next));
+    setNewViewName("");
+    setNewViewTag("");
+    setNewViewOpen(false);
+    setActiveCustomView(view.id);
+    setActiveView("all");
+  }
+
+  async function shareDocument() {
+    const url = window.location.href;
+    if (navigator.share) {
+      await navigator.share({ title: selected.title, url }).catch(() => {});
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    setToast("Document link copied");
   }
 
   function updateDocument(patch: Partial<PaperlessDocument>) {
@@ -347,8 +440,9 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       });
       if (!response.ok) throw new Error("Upload failed");
       setToast(`${file.name} sent to Paperless`);
+      setRefreshKey((current) => current + 1);
     } catch {
-      setToast(`${file.name} added to the consumption queue`);
+      setToast(`Could not upload ${file.name}`);
     } finally {
       setUploading(false);
       setUploadOpen(false);
@@ -399,6 +493,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                 className={cn("nav-item", activeView === item.id && "is-active")}
                 onClick={() => {
                   setActiveView(item.id);
+                  setActiveCustomView(null);
                   setMobileNavOpen(false);
                 }}
               >
@@ -413,16 +508,43 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         <div className="nav-section">
           <div className="nav-section-heading">
             <span>Saved views</span>
-            <button aria-label="Add saved view">
+            <button
+              aria-label="Add saved view"
+              onClick={() => setNewViewOpen((current) => !current)}
+            >
               <Plus size={14} />
             </button>
           </div>
+          {newViewOpen ? (
+            <div className="saved-view-form">
+              <input
+                value={newViewName}
+                onChange={(event) => setNewViewName(event.target.value)}
+                placeholder="View name"
+                aria-label="Saved view name"
+              />
+              <select
+                value={newViewTag}
+                onChange={(event) => setNewViewTag(event.target.value)}
+                aria-label="Saved view tag"
+              >
+                <option value="">Choose tag…</option>
+                {tagOptions.map((tag) => (
+                  <option key={tag}>{tag}</option>
+                ))}
+              </select>
+              <button onClick={saveCustomView} disabled={!newViewName || !newViewTag}>
+                Save view
+              </button>
+            </div>
+          ) : null}
           {savedViews.map((view) => (
             <button
               key={view.id}
               className={cn("nav-item", activeView === view.id && "is-active")}
               onClick={() => {
                 setActiveView(view.id);
+                setActiveCustomView(null);
                 setMobileNavOpen(false);
               }}
             >
@@ -433,14 +555,48 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               <span>{view.label}</span>
             </button>
           ))}
+          {customViews.map((view) => (
+            <button
+              key={view.id}
+              className={cn(
+                "nav-item",
+                activeCustomView === view.id && "is-active",
+              )}
+              onClick={() => {
+                setActiveView("all");
+                setActiveCustomView(view.id);
+                setMobileNavOpen(false);
+              }}
+            >
+              <span className="saved-dot custom-dot" />
+              <span>{view.label}</span>
+            </button>
+          ))}
         </div>
 
         <div className="sidebar-footer">
-          <button className="nav-item">
+          <div className="sidebar-popover-wrap">
+          <button
+            className="nav-item"
+            onClick={() => setHelpOpen((current) => !current)}
+          >
             <CircleHelp size={17} />
             <span>Help & shortcuts</span>
           </button>
-          <button className="account-row">
+          {helpOpen ? (
+            <div className="sidebar-popover">
+              <strong>Shortcuts</strong>
+              <span><kbd>⌘ K</kbd> Search</span>
+              <span><kbd>⌘ U</kbd> Upload</span>
+              <span><kbd>Esc</kbd> Close menus</span>
+            </div>
+          ) : null}
+          </div>
+          <div className="sidebar-popover-wrap">
+          <button
+            className="account-row"
+            onClick={() => setAccountOpen((current) => !current)}
+          >
             <span className="avatar">NK</span>
             <span>
               <strong>Niklas</strong>
@@ -448,6 +604,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             </span>
             <MoreHorizontal size={16} />
           </button>
+          {accountOpen ? (
+            <div className="sidebar-popover account-popover">
+              <strong>Paperless connection</strong>
+              <span className="connection-state"><i /> Connected</span>
+              <small>API credentials stay on the server.</small>
+            </div>
+          ) : null}
+          </div>
         </div>
       </aside>
 
@@ -507,11 +671,31 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                 ? pagination.count
                 : visibleDocuments.length}
             </span>
-            <button className="icon-button" aria-label="Filter documents">
+            <div className="toolbar-popover-wrap">
+            <button
+              className={cn("icon-button", filterOpen && "is-pressed")}
+              aria-label="Filter documents"
+              onClick={() => setFilterOpen((current) => !current)}
+            >
               <SlidersHorizontal size={16} />
             </button>
-            <button className="icon-button is-pressed" aria-label="List view">
-              <LayoutList size={16} />
+            {filterOpen ? (
+              <div className="filter-popover">
+                <div><strong>Filter documents</strong><button onClick={() => { setFilterCorrespondent(""); setFilterType(""); setFilterTag(""); }}>Clear</button></div>
+                <label>Correspondent<select value={filterCorrespondent} onChange={(event) => setFilterCorrespondent(event.target.value)}><option value="">Any</option>{correspondentOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+                <label>Type<select value={filterType} onChange={(event) => setFilterType(event.target.value)}><option value="">Any</option>{documentTypeOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+                <label>Tag<select value={filterTag} onChange={(event) => setFilterTag(event.target.value)}><option value="">Any</option>{tagOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+              </div>
+            ) : null}
+            </div>
+            <button
+              className="icon-button is-pressed"
+              aria-label={viewMode === "list" ? "Grid view" : "List view"}
+              onClick={() =>
+                setViewMode((current) => current === "list" ? "grid" : "list")
+              }
+            >
+              {viewMode === "list" ? <LayoutList size={16} /> : <Grid2X2 size={16} />}
             </button>
           </div>
         </div>
@@ -521,6 +705,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           className={cn(
             "document-list",
             loadingDocuments && "is-loading",
+            viewMode === "grid" && "is-grid",
           )}
           aria-busy={loadingDocuments}
         >
@@ -622,23 +807,48 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             >
               <ArrowLeft size={18} />
             </button>
-            <button className="icon-button" aria-label="Previous document">
+            <button
+              className="icon-button"
+              aria-label="Previous document"
+              disabled={selectedIndex <= 0}
+              onClick={() => moveDocument(-1)}
+            >
               <ChevronLeft size={17} />
             </button>
-            <button className="icon-button" aria-label="Next document">
+            <button
+              className="icon-button"
+              aria-label="Next document"
+              disabled={selectedIndex < 0 || selectedIndex >= visibleDocuments.length - 1}
+              onClick={() => moveDocument(1)}
+            >
               <ChevronRight size={17} />
             </button>
           </div>
           <div className="preview-actions">
-            <Button variant="ghost" size="icon" aria-label="Download document">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Download document"
+              onClick={() => {
+                window.location.href = `/api/documents/${selected.id}/download`;
+              }}
+            >
               <Download size={17} />
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Share document">
+            <Button variant="ghost" size="icon" aria-label="Share document" onClick={shareDocument}>
               <Share2 size={17} />
             </Button>
-            <Button variant="ghost" size="icon" aria-label="More options">
+            <div className="more-menu-wrap">
+            <Button variant="ghost" size="icon" aria-label="More options" onClick={() => setMoreOpen((current) => !current)}>
               <MoreHorizontal size={18} />
             </Button>
+            {moreOpen ? (
+              <div className="more-menu">
+                <button onClick={async () => { await navigator.clipboard.writeText(String(selected.id)); setToast("Document ID copied"); setMoreOpen(false); }}>Copy document ID</button>
+                <button onClick={() => { persistDocument({ status: selected.status === "review" ? "ready" : "review" }); setMoreOpen(false); }}>{selected.status === "review" ? "Mark reviewed" : "Return to review"}</button>
+              </div>
+            ) : null}
+            </div>
             <span className="toolbar-divider" />
             <Button
               variant="ghost"
@@ -667,16 +877,28 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             {paperlessConnected ? (
               <iframe
                 className="pdf-preview"
-                src={`/api/documents/${selected.id}/preview`}
+                src={`/api/documents/${selected.id}/preview#page=${previewPage}&zoom=page-width`}
                 title={`Preview of ${selected.title}`}
               />
             ) : (
               <DocumentPaper document={selected} />
             )}
             <div className="page-control">
-              <button aria-label="Zoom out">−</button>
-              <span>1 / {selected.pages}</span>
-              <button aria-label="Zoom in">+</button>
+              <button
+                aria-label="Previous PDF page"
+                disabled={previewPage <= 1}
+                onClick={() => setPreviewPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span>{previewPage} / {selected.pages}</span>
+              <button
+                aria-label="Next PDF page"
+                disabled={previewPage >= selected.pages}
+                onClick={() => setPreviewPage((current) => Math.min(selected.pages, current + 1))}
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
 
@@ -729,9 +951,15 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                 />
                 <div className="metadata-row">
                   <span className="metadata-label">Created</span>
-                  <button className="metadata-value date-value">
-                    {selected.created}
-                  </button>
+                  <input
+                    className="metadata-value date-value"
+                    type="date"
+                    value={toDateInputValue(selected.created)}
+                    onChange={(event) =>
+                      persistDocument({ created: event.target.value })
+                    }
+                    aria-label="Created date"
+                  />
                 </div>
               </div>
 
@@ -881,6 +1109,12 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       ) : null}
     </main>
   );
+}
+
+function toDateInputValue(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return date.toISOString().slice(0, 10);
 }
 
 function MetadataSelect({

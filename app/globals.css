@@ -1607,6 +1607,169 @@ select {
   }
 }
 
+.custom-dot {
+  background: var(--tag-ochre);
+}
+
+.saved-view-form {
+  display: grid;
+  padding: 8px;
+  gap: 6px;
+}
+
+.saved-view-form input,
+.saved-view-form select,
+.filter-popover select {
+  height: 29px;
+  min-width: 0;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.saved-view-form button {
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--blue);
+  color: var(--paper);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.saved-view-form button:disabled {
+  opacity: 0.45;
+}
+
+.sidebar-popover-wrap,
+.toolbar-popover-wrap,
+.more-menu-wrap {
+  position: relative;
+}
+
+.sidebar-popover,
+.filter-popover,
+.more-menu {
+  position: absolute;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow-soft);
+}
+
+.sidebar-popover {
+  bottom: 37px;
+  left: 5px;
+  width: 180px;
+  padding: 10px;
+  gap: 7px;
+  font-size: 10px;
+}
+
+.sidebar-popover span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ink-soft);
+}
+
+.sidebar-popover kbd {
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.account-popover {
+  bottom: 51px;
+}
+
+.connection-state i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tag-sage);
+}
+
+.filter-popover {
+  top: 35px;
+  right: 0;
+  width: 210px;
+  padding: 11px;
+  gap: 9px;
+  text-align: left;
+}
+
+.filter-popover > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.filter-popover > div button {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 9px;
+}
+
+.filter-popover label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-faint);
+  font-size: 9px;
+}
+
+.document-list.is-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  padding: 9px;
+  gap: 7px;
+}
+
+.document-list.is-grid .document-row {
+  min-height: 145px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+}
+
+.more-menu {
+  top: 35px;
+  right: 0;
+  width: 145px;
+  padding: 5px;
+}
+
+.more-menu button {
+  height: 29px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 10px;
+  text-align: left;
+}
+
+.more-menu button:hover {
+  background: var(--paper-deep);
+}
+
+input.metadata-value {
+  width: 100%;
+  color: var(--ink);
+}
+
+.page-control button:disabled {
+  color: var(--line);
+  cursor: default;
+}
+
 .nav-scrim {
   display: none;
 }
