@@ -647,24 +647,25 @@ select {
 
 .document-row-topline {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
   gap: 7px;
 }
 
 .document-row-topline strong {
   min-width: 0;
-  overflow: hidden;
   font-size: 12px;
   font-weight: 650;
   letter-spacing: -0.01em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .review-dot {
   width: 6px;
   height: 6px;
+  margin-top: 5px;
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--blue);
