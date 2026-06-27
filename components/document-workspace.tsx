@@ -169,7 +169,6 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       page_size: String(PAGE_SIZE),
     });
     if (debouncedQuery) params.set("query", debouncedQuery);
-    if (initialDocumentId) params.set("id", String(initialDocumentId));
 
     setLoadingDocuments(true);
     fetch(`/api/documents?${params}`, {
@@ -207,13 +206,13 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         if (payload.metadata?.tags?.length) {
           setTagOptions(payload.metadata.tags);
         }
-        const preferred =
-          payload.results.find((document) => document.id === selectedId) ??
-          (initialDocumentId
-            ? payload.results.find(
-                (document) => document.id === initialDocumentId,
-              )
-            : payload.results[0]);
+        const preferred = initialDocumentId
+          ? payload.results.find(
+              (document) => document.id === initialDocumentId,
+            )
+          : (payload.results.find(
+              (document) => document.id === selectedId,
+            ) ?? payload.results[0]);
         if (preferred) {
           setSelectedId(preferred.id);
           setSelectedDocument(preferred);
@@ -230,6 +229,28 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       controller.abort();
     };
   }, [debouncedQuery, initialDocumentId, page]);
+
+  useEffect(() => {
+    if (!initialDocumentId) return;
+
+    const controller = new AbortController();
+    fetch(`/api/documents?id=${initialDocumentId}&page_size=1`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => response.json())
+      .then((payload: { results?: PaperlessDocument[] }) => {
+        const document = payload.results?.[0];
+        if (!document) return;
+        setSelectedId(document.id);
+        setSelectedDocument(document);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      });
+
+    return () => controller.abort();
+  }, [initialDocumentId]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
