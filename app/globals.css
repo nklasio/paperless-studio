@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --ink: oklch(0.22 0.018 258);
-  --ink-soft: oklch(0.45 0.02 258);
-  --ink-faint: oklch(0.61 0.018 258);
-  --paper: oklch(0.985 0.006 88);
-  --paper-deep: oklch(0.958 0.008 88);
-  --chrome: oklch(0.965 0.008 258);
-  --sidebar: oklch(0.94 0.012 254);
-  --line: oklch(0.88 0.01 258);
-  --line-soft: oklch(0.91 0.009 258);
-  --blue: oklch(0.55 0.19 257);
-  --blue-dark: oklch(0.45 0.18 257);
-  --blue-soft: oklch(0.93 0.036 257);
+  --ink: oklch(0.22 0.012 264);
+  --ink-soft: oklch(0.43 0.014 264);
+  --ink-faint: oklch(0.58 0.012 264);
+  --paper: oklch(0.992 0.003 264);
+  --paper-deep: oklch(0.965 0.006 264);
+  --chrome: oklch(0.968 0.006 264);
+  --sidebar: oklch(0.955 0.009 264);
+  --line: oklch(0.88 0.008 264);
+  --line-soft: oklch(0.925 0.006 264);
+  --blue: oklch(0.62 0.2 255);
+  --blue-dark: oklch(0.52 0.2 255);
+  --blue-soft: oklch(0.93 0.04 255);
   --tag-blue: oklch(0.67 0.12 253);
   --tag-sage: oklch(0.67 0.08 154);
   --tag-plum: oklch(0.62 0.1 323);
   --tag-ochre: oklch(0.73 0.11 75);
   --shadow-soft: 0 1px 2px oklch(0.25 0.02 258 / 5%),
-    0 10px 30px oklch(0.25 0.02 258 / 7%);
-  --font-sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    0 8px 24px oklch(0.25 0.02 258 / 6%);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Helvetica Neue", sans-serif;
 }
 
 * {
@@ -35,7 +37,7 @@ body {
   background: var(--chrome);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13px;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -63,7 +65,7 @@ select {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 218px 332px minmax(620px, 1fr);
+  grid-template-columns: 220px 360px minmax(620px, 1fr);
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
@@ -78,9 +80,7 @@ select {
   min-width: 0;
   padding: 18px 12px 12px;
   border-right: 1px solid var(--line);
-  background:
-    radial-gradient(circle at 24px 38px, oklch(0.97 0.018 251), transparent 120px),
-    var(--sidebar);
+  background: var(--sidebar);
 }
 
 .brand-row {
@@ -126,8 +126,8 @@ select {
 }
 
 .brand-name {
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 680;
   letter-spacing: -0.01em;
 }
 
@@ -145,12 +145,12 @@ select {
   padding: 0 10px;
   gap: 8px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--blue);
   color: oklch(0.985 0.006 258);
   box-shadow: 0 1px 1px oklch(0.3 0.1 257 / 20%);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 620;
   transition: transform 150ms ease, background 150ms ease;
 }
 
@@ -188,7 +188,7 @@ select {
   background: transparent;
   color: var(--ink-soft);
   text-align: left;
-  font-size: 12.5px;
+  font-size: 12px;
   transition: background 120ms ease, color 120ms ease;
 }
 
@@ -198,7 +198,7 @@ select {
 }
 
 .nav-item.is-active {
-  background: oklch(0.87 0.026 257);
+  background: oklch(0.89 0.026 255);
   color: var(--ink);
   font-weight: 600;
 }
@@ -329,8 +329,8 @@ select {
 .preview-toolbar {
   display: flex;
   align-items: center;
-  height: 57px;
-  flex: 0 0 57px;
+  height: 52px;
+  flex: 0 0 52px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -346,7 +346,7 @@ select {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 31px;
+  height: 30px;
   padding: 0 8px;
   gap: 7px;
   border: 1px solid var(--line);
@@ -401,8 +401,8 @@ select {
 .list-toolbar {
   display: flex;
   align-items: flex-end;
-  min-height: 91px;
-  padding: 19px 17px 15px 19px;
+  min-height: 82px;
+  padding: 16px 17px 14px 19px;
   border-bottom: 1px solid var(--line-soft);
 }
 
@@ -411,16 +411,16 @@ select {
   color: var(--ink-faint);
   font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.065em;
   text-transform: uppercase;
 }
 
 .list-toolbar h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 25px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
   line-height: 1.15;
 }
 
@@ -536,8 +536,8 @@ select {
   --delay: 0ms;
   display: flex;
   width: 100%;
-  min-height: 118px;
-  padding: 13px 14px;
+  min-height: 106px;
+  padding: 11px 14px;
   gap: 13px;
   border: 0;
   border-bottom: 1px solid var(--line-soft);
@@ -655,9 +655,9 @@ select {
 .document-row-topline strong {
   min-width: 0;
   overflow: hidden;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 650;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -835,7 +835,7 @@ select {
 
 .preview-stage {
   display: grid;
-  grid-template-columns: minmax(390px, 1fr) 286px;
+  grid-template-columns: minmax(390px, 1fr) 300px;
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -1119,7 +1119,7 @@ select {
 
 .inspector {
   display: flex;
-  min-width: 286px;
+  min-width: 300px;
   flex-direction: column;
   overflow: hidden;
   border-left: 1px solid var(--line);
@@ -1138,7 +1138,7 @@ select {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 22px 20px;
+  padding: 22px;
 }
 
 .document-heading {
@@ -1172,9 +1172,9 @@ select {
 .document-heading h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
   line-height: 1.25;
 }
 
@@ -1202,13 +1202,13 @@ select {
 .review-callout strong {
   display: block;
   color: var(--blue-dark);
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
 .review-callout p {
   margin: 2px 0 0;
   color: oklch(0.48 0.08 257);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -1234,7 +1234,7 @@ select {
 .inspector-section h3 {
   margin: 0 0 11px;
   color: var(--ink-soft);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1250,7 +1250,7 @@ select {
 
 .metadata-label {
   color: var(--ink-faint);
-  font-size: 10px;
+  font-size: 10.5px;
 }
 
 .select-wrap {
@@ -1271,7 +1271,7 @@ select {
   appearance: none;
   background: transparent;
   color: var(--ink);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 550;
   text-overflow: ellipsis;
 }
@@ -1296,7 +1296,7 @@ select {
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 550;
 }
 
@@ -1391,7 +1391,7 @@ select {
   border-radius: 5px;
   background: oklch(0.965 0.017 257);
   color: oklch(0.43 0.05 257);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 550;
 }
 
@@ -1427,7 +1427,7 @@ select {
   display: flex;
   justify-content: space-between;
   min-height: 27px;
-  font-size: 10px;
+  font-size: 10.5px;
 }
 
 .file-facts dt {
@@ -1504,9 +1504,9 @@ select {
 .dialog-heading h2 {
   margin: 2px 0 0;
   font-family: var(--font-display);
-  font-size: 25px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
 }
 
 .drop-zone {
