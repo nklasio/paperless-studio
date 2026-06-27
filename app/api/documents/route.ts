@@ -16,13 +16,17 @@ export async function GET(request: NextRequest) {
   }
 
   const search = request.nextUrl.searchParams.get("query") ?? "";
+  const documentParams = new URLSearchParams({ page_size: "100" });
+  if (search.trim()) {
+    documentParams.set("query", search.trim());
+  }
   const headers = { Authorization: `Token ${config.token}` };
   const [documentResponse, correspondentResponse, typeResponse, tagResponse] =
     await Promise.all([
-      fetch(
-        `${config.url}/api/documents/?page_size=100&query=${encodeURIComponent(search)}`,
-        { headers, cache: "no-store" },
-      ),
+      fetch(`${config.url}/api/documents/?${documentParams}`, {
+        headers,
+        cache: "no-store",
+      }),
       fetch(`${config.url}/api/correspondents/?page_size=1000`, {
         headers,
         cache: "no-store",
@@ -57,6 +61,11 @@ export async function GET(request: NextRequest) {
   const correspondentNames = names(correspondentPayload.results ?? []);
   const typeNames = names(typePayload.results ?? []);
   const tagNames = names(tagPayload.results ?? []);
+  const metadata = {
+    correspondents: Array.from(correspondentNames.values()).sort(),
+    documentTypes: Array.from(typeNames.values()).sort(),
+    tags: Array.from(tagNames.values()).sort(),
+  };
   const accents = ["blue", "ochre", "sage", "plum", "slate"] as const;
   const formatDate = (value: string) =>
     new Intl.DateTimeFormat("en", {
@@ -102,7 +111,7 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  return NextResponse.json({ configured: true, results });
+  return NextResponse.json({ configured: true, results, metadata });
 }
 
 export async function POST(request: NextRequest) {

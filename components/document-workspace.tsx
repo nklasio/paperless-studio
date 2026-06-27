@@ -62,11 +62,10 @@ const navItems: Array<{
   id: NavView;
   label: string;
   icon: typeof Inbox;
-  count?: number;
 }> = [
-  { id: "inbox", label: "Inbox", icon: Inbox, count: 3 },
+  { id: "inbox", label: "Inbox", icon: Inbox },
   { id: "recent", label: "Recently added", icon: Clock3 },
-  { id: "review", label: "Needs review", icon: FileCheck2, count: 3 },
+  { id: "review", label: "Needs review", icon: FileCheck2 },
   { id: "all", label: "All documents", icon: Archive },
 ];
 
@@ -85,7 +84,12 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] =
     useState<PaperlessDocument[]>(initialDocuments);
-  const [activeView, setActiveView] = useState<NavView>("inbox");
+  const [activeView, setActiveView] = useState<NavView>("recent");
+  const [correspondentOptions, setCorrespondentOptions] =
+    useState(correspondents);
+  const [documentTypeOptions, setDocumentTypeOptions] =
+    useState(documentTypes);
+  const [tagOptions, setTagOptions] = useState(availableTags);
   const [selectedId, setSelectedId] = useState(
     initialDocumentId ?? initialDocuments[0].id,
   );
@@ -129,12 +133,29 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/documents")
+    fetch("/api/documents", { cache: "no-store" })
       .then((response) => response.json())
-      .then((payload: { configured?: boolean; results?: PaperlessDocument[] }) => {
+      .then((payload: {
+        configured?: boolean;
+        results?: PaperlessDocument[];
+        metadata?: {
+          correspondents?: string[];
+          documentTypes?: string[];
+          tags?: string[];
+        };
+      }) => {
         if (cancelled || !payload.configured || !payload.results?.length) return;
         setPaperlessConnected(true);
         setDocuments(payload.results);
+        if (payload.metadata?.correspondents?.length) {
+          setCorrespondentOptions(payload.metadata.correspondents);
+        }
+        if (payload.metadata?.documentTypes?.length) {
+          setDocumentTypeOptions(payload.metadata.documentTypes);
+        }
+        if (payload.metadata?.tags?.length) {
+          setTagOptions(payload.metadata.tags);
+        }
         const preferred = initialDocumentId
           ? payload.results.find((document) => document.id === initialDocumentId)
           : payload.results[0];
@@ -270,6 +291,11 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         <nav className="primary-nav" aria-label="Document views">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const count =
+              item.id === "inbox" || item.id === "review"
+                ? documents.filter((document) => document.status === "review")
+                    .length
+                : undefined;
             return (
               <button
                 key={item.id}
@@ -281,7 +307,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               >
                 <Icon size={17} />
                 <span>{item.label}</span>
-                {item.count ? <em>{item.count}</em> : null}
+                {count ? <em>{count}</em> : null}
               </button>
             );
           })}
@@ -536,7 +562,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                 <MetadataSelect
                   label="Correspondent"
                   value={selected.correspondent}
-                  options={correspondents}
+                  options={correspondentOptions}
                   onChange={(value) =>
                     persistDocument({ correspondent: value })
                   }
@@ -544,7 +570,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                 <MetadataSelect
                   label="Document type"
                   value={selected.documentType}
-                  options={documentTypes}
+                  options={documentTypeOptions}
                   onChange={(value) =>
                     persistDocument({ documentType: value })
                   }
@@ -571,7 +597,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                     {tagMenuOpen ? (
                       <div className="tag-menu">
                         <span>Add a tag</span>
-                        {availableTags
+                        {tagOptions
                           .filter((tag) => !selected.tags.includes(tag))
                           .map((tag) => (
                             <button key={tag} onClick={() => addTag(tag)}>
