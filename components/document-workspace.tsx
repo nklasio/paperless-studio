@@ -876,9 +876,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           <div ref={paperWrapRef} className="paper-wrap">
             {paperlessConnected ? (
               <iframe
+                key={`${selected.id}-${previewPage}`}
                 className="pdf-preview"
                 src={`/api/documents/${selected.id}/preview#page=${previewPage}&zoom=page-width`}
-                title={`Preview of ${selected.title}`}
+                title={`Page ${previewPage} of ${selected.title}`}
               />
             ) : (
               <DocumentPaper document={selected} />
