@@ -4,6 +4,14 @@
   "description": "A focused document workspace for paperless-ngx.",
   "private": true,
   "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklasio/paperless-studio.git"
+  },
+  "homepage": "https://github.com/nklasio/paperless-studio#readme",
+  "bugs": {
+    "url": "https://github.com/nklasio/paperless-studio/issues"
+  },
   "engines": {
     "node": ">=20.9.0"
   },

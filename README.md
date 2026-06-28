@@ -1,5 +1,7 @@
 # Paperless Studio
 
+[![CI](https://github.com/nklasio/paperless-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/nklasio/paperless-studio/actions/workflows/ci.yml)
+
 Paperless Studio is a focused, desktop-like web interface for
 [paperless-ngx](https://github.com/paperless-ngx/paperless-ngx). It keeps
 Paperless responsible for OCR, storage, consumption, permissions, and
@@ -33,7 +35,7 @@ Requirements:
 - A paperless-ngx instance and API token for live data
 
 ```bash
-git clone <your-fork-or-clone-url>
+git clone https://github.com/nklasio/paperless-studio.git
 cd paperless-studio
 npm install
 cp .env.example .env.local
