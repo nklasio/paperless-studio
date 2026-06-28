@@ -14,6 +14,11 @@ Browser UI
 `PAPERLESS_TOKEN` is read only by route handlers. The browser talks to the
 same-origin Studio API and never needs the token.
 
+When local authentication is configured, `proxy.ts` performs the early session
+check and document route handlers repeat it at the data boundary. Session
+signing and credential comparison live in `lib/auth.ts`; this boundary can be
+replaced by a future identity provider without changing the Paperless adapter.
+
 ## Main areas
 
 ### UI workspace

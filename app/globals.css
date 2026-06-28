@@ -330,6 +330,147 @@ button:disabled {
   font-weight: 700;
 }
 
+.popover-action {
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink-muted);
+  font: inherit;
+  text-align: center;
+}
+
+.popover-action:hover {
+  border-color: var(--line-strong);
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.login-shell {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 20%, oklch(0.97 0.02 255), transparent 38%),
+    var(--chrome);
+}
+
+.login-card {
+  width: min(100%, 390px);
+  padding: 38px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in oklch, var(--paper) 96%, transparent);
+  box-shadow:
+    0 24px 70px oklch(0.25 0.04 255 / 0.12),
+    0 2px 8px oklch(0.25 0.04 255 / 0.05);
+}
+
+.login-brand {
+  position: relative;
+  width: 30px;
+  height: 34px;
+  margin-bottom: 22px;
+}
+
+.login-brand span {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--blue);
+  border-radius: 3px;
+  background: var(--paper);
+}
+
+.login-brand span:nth-child(1) {
+  translate: 8px 0;
+  opacity: 0.35;
+}
+
+.login-brand span:nth-child(2) {
+  translate: 4px 0;
+  opacity: 0.65;
+}
+
+.login-eyebrow {
+  margin: 0 0 8px;
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 27px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.login-description {
+  margin: 9px 0 26px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.login-form input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.login-form button {
+  min-height: 42px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--blue);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.login-form button:hover {
+  background: var(--blue-dark);
+}
+
+.login-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.login-error {
+  margin: -3px 0 0;
+  color: oklch(0.52 0.19 25);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .document-column {
   position: relative;
   z-index: 10;

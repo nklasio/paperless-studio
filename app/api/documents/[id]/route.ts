@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireDocumentAuthentication } from "@/lib/auth-route";
 import {
   paperlessConfiguration,
   paperlessFetch,
@@ -16,6 +17,8 @@ export async function PATCH(
       { status: 403 },
     );
   }
+  const authenticationFailure = await requireDocumentAuthentication(request);
+  if (authenticationFailure) return authenticationFailure;
 
   if (!paperlessConfiguration()) {
     return NextResponse.json(

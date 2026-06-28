@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   initialDocumentId?: number;
+  authUsername?: string;
 };
 
 const PAGE_SIZE = 20;
@@ -80,7 +81,7 @@ const savedViews: Array<{
   { id: "work", label: "Work", color: "var(--tag-plum)" },
 ];
 
-export function DocumentWorkspace({ initialDocumentId }: Props) {
+export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
@@ -489,6 +490,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     }
   }
 
+  async function signOut() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.assign("/login");
+    }
+  }
+
   function updateDocument(patch: Partial<PaperlessDocument>) {
     setSelectedDocument((current) =>
       current.id === selected.id ? { ...current, ...patch } : current,
@@ -731,9 +740,11 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               aria-controls="account-popover"
               onClick={() => setAccountOpen((current) => !current)}
             >
-              <span className="avatar">P</span>
+              <span className="avatar">
+                {(authUsername ?? "Paperless").slice(0, 1).toUpperCase()}
+              </span>
               <span>
-                <strong>Paperless</strong>
+                <strong>{authUsername ?? "Paperless"}</strong>
                 <small>
                   {paperlessConnected ? "Connected workspace" : "Local preview"}
                 </small>
@@ -760,6 +771,11 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                       : "Demo mode"}
                 </span>
                 <small>API credentials stay on the server.</small>
+                {authUsername ? (
+                  <button className="popover-action" onClick={signOut}>
+                    Sign out
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>

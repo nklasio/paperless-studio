@@ -29,12 +29,16 @@ Paperless Studio stores no Paperless credential in browser code. Server-side
 route handlers use `PAPERLESS_TOKEN` to communicate with Paperless. Upload and
 metadata mutation routes reject cross-origin browser requests.
 
-The app does not currently authenticate its own users or reproduce Paperless
-user sessions. Anyone who can reach Studio can act with the configured token's
-permissions. Operators should:
+The optional built-in local account protects Studio with a signed, HTTP-only
+session. It does not reproduce Paperless user sessions: every signed-in user
+still acts with the configured token's permissions. Operators should:
 
-- Keep Studio on a trusted network or behind an authenticated reverse proxy
+- Enable the local account or use an authenticated reverse proxy
+- Keep Studio on a trusted network
 - Use HTTPS at the public edge
 - Use a dedicated, least-privilege Paperless account
-- Rotate the token if it may have been exposed
+- Rotate the API token, password, and session secret if they may be exposed
 - Avoid logging environment variables or request headers
+
+See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for configuration and
+limitations.

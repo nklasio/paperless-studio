@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireDocumentAuthentication } from "@/lib/auth-route";
 import { paperlessConfiguration, paperlessFetch } from "@/lib/paperless-api";
 import {
   buildDocumentQuery,
@@ -65,6 +66,9 @@ function emptyPagination(page: number, pageSize: number) {
 }
 
 export async function GET(request: NextRequest) {
+  const authenticationFailure = await requireDocumentAuthentication(request);
+  if (authenticationFailure) return authenticationFailure;
+
   if (!paperlessConfiguration()) {
     return NextResponse.json(
       { configured: false, results: [] },
@@ -208,6 +212,9 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   }
+  const authenticationFailure = await requireDocumentAuthentication(request);
+  if (authenticationFailure) return authenticationFailure;
+
   if (!paperlessConfiguration()) {
     return NextResponse.json(
       { error: "Paperless is not configured" },

@@ -1,4 +1,5 @@
 import { DocumentWorkspace } from "@/components/document-workspace";
+import { authenticationState } from "@/lib/auth";
 import { notFound } from "next/navigation";
 
 export default async function DocumentPage({
@@ -10,5 +11,15 @@ export default async function DocumentPage({
   const documentId = Number(id);
   if (!Number.isSafeInteger(documentId) || documentId <= 0) notFound();
 
-  return <DocumentWorkspace initialDocumentId={documentId} />;
+  const authentication = authenticationState();
+  return (
+    <DocumentWorkspace
+      initialDocumentId={documentId}
+      authUsername={
+        authentication.mode === "configured"
+          ? authentication.configuration.username
+          : undefined
+      }
+    />
+  );
 }

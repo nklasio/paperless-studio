@@ -63,6 +63,9 @@ services:
     environment:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
+      PAPERLESS_STUDIO_USERNAME: ${PAPERLESS_STUDIO_USERNAME}
+      PAPERLESS_STUDIO_PASSWORD: ${PAPERLESS_STUDIO_PASSWORD}
+      PAPERLESS_STUDIO_SESSION_SECRET: ${PAPERLESS_STUDIO_SESSION_SECRET}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
@@ -73,6 +76,9 @@ Add the token to the `.env` file used by Docker Compose:
 
 ```env
 PAPERLESS_STUDIO_TOKEN=replace-with-your-api-token
+PAPERLESS_STUDIO_USERNAME=studio
+PAPERLESS_STUDIO_PASSWORD=replace-with-a-strong-password
+PAPERLESS_STUDIO_SESSION_SECRET=replace-with-at-least-32-random-characters
 ```
 
 The snippet assumes the Paperless service is named `webserver`, as in the
@@ -100,6 +106,9 @@ services:
     environment:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
+      PAPERLESS_STUDIO_USERNAME: ${PAPERLESS_STUDIO_USERNAME}
+      PAPERLESS_STUDIO_PASSWORD: ${PAPERLESS_STUDIO_PASSWORD}
+      PAPERLESS_STUDIO_SESSION_SECRET: ${PAPERLESS_STUDIO_SESSION_SECRET}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
@@ -112,12 +121,15 @@ tagging and image-version policy.
 
 ## Configuration
 
-| Variable                       | Required      | Description                                                       |
-| ------------------------------ | ------------- | ----------------------------------------------------------------- |
-| `PAPERLESS_URL`                | For live data | Base URL reachable by the Studio server, without a trailing slash |
-| `PAPERLESS_TOKEN`              | For live data | Paperless API token; kept on the server                           |
-| `PAPERLESS_REQUEST_TIMEOUT_MS` | No            | Upstream request timeout in milliseconds; defaults to `15000`     |
-| `PAPERLESS_MAX_UPLOAD_SIZE_MB` | No            | Maximum accepted upload size in MiB; defaults to `100`            |
+| Variable                          | Required      | Description                                                       |
+| --------------------------------- | ------------- | ----------------------------------------------------------------- |
+| `PAPERLESS_URL`                   | For live data | Base URL reachable by the Studio server, without a trailing slash |
+| `PAPERLESS_TOKEN`                 | For live data | Paperless API token; kept on the server                           |
+| `PAPERLESS_REQUEST_TIMEOUT_MS`    | No            | Upstream request timeout in milliseconds; defaults to `15000`     |
+| `PAPERLESS_MAX_UPLOAD_SIZE_MB`    | No            | Maximum accepted upload size in MiB; defaults to `100`            |
+| `PAPERLESS_STUDIO_USERNAME`       | No            | Enables the local account when set with the other auth variables  |
+| `PAPERLESS_STUDIO_PASSWORD`       | No            | Password for the local account                                    |
+| `PAPERLESS_STUDIO_SESSION_SECRET` | No            | Random session-signing secret of at least 32 characters           |
 
 No client-side environment variables are required.
 
@@ -130,11 +142,16 @@ reporting an integration issue.
 
 ### Security
 
-Paperless Studio currently has no authentication layer of its own. Every user
-who can reach it acts through the configured Paperless token and receives that
-token's permissions. Do not expose the app directly to the public internet. Put
-it behind an authenticated reverse proxy or another trusted access layer, and
-use a dedicated Paperless account with the least privileges you need.
+Paperless Studio provides an optional environment-defined local account.
+Generate its session secret with `openssl rand -hex 32`; leaving all three
+authentication variables unset preserves contributor demo mode. Every signed-in
+user still acts through the configured Paperless token and receives that token's
+permissions.
+
+For remote access, terminate HTTPS at a trusted reverse proxy and use a
+dedicated Paperless account with the least privileges you need. See
+[docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for the security model and
+future provider path.
 
 See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 

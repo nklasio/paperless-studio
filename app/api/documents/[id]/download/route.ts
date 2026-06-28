@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireDocumentAuthentication } from "@/lib/auth-route";
 import {
   paperlessConfiguration,
   paperlessFetch,
@@ -6,9 +7,12 @@ import {
 } from "@/lib/paperless-api";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authenticationFailure = await requireDocumentAuthentication(request);
+  if (authenticationFailure) return authenticationFailure;
+
   if (!paperlessConfiguration()) {
     return NextResponse.json(
       { error: "Paperless is not configured" },
