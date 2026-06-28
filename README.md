@@ -88,9 +88,27 @@ Build and start only the new service:
 docker compose up -d --build paperless-studio
 ```
 
-There is no published container image yet. The Compose service intentionally
-builds from the local clone so it can be copied into an existing stack today
-and switched to an `image:` later.
+The Compose service above builds from a local clone. Tagged releases are also
+published to GitHub Container Registry, so the `build` block can be replaced
+with a pinned image:
+
+```yaml
+services:
+  paperless-studio:
+    image: ghcr.io/nklasio/paperless-studio:0.1.0
+    restart: unless-stopped
+    environment:
+      PAPERLESS_URL: http://webserver:8000
+      PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - webserver
+```
+
+Use `latest` to follow the newest stable release, or pin a full version for
+predictable deployments. See [docs/RELEASING.md](docs/RELEASING.md) for the
+tagging and image-version policy.
 
 ## Configuration
 

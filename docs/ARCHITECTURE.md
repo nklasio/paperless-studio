@@ -79,3 +79,9 @@ reload.
 
 These are useful contribution areas, but changes should preserve a simple
 local setup and keep credentials server-side.
+
+## Releases
+
+Pushing a semantic version tag triggers the container release workflow. See
+[`RELEASING.md`](RELEASING.md) for the supported tag format, image aliases,
+and architectures.
