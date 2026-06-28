@@ -86,6 +86,8 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
   const paperWrapRef = useRef<HTMLDivElement>(null);
+  const uploadCloseRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [documents, setDocuments] =
     useState<PaperlessDocument[]>(initialDocuments);
   const [selectedDocument, setSelectedDocument] = useState(
@@ -137,6 +139,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [paperlessConnected, setPaperlessConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewPage, setPreviewPage] = useState(1);
 
@@ -221,7 +224,12 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       cache: "no-store",
       signal: controller.signal,
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Paperless request failed with ${response.status}`);
+        }
+        return response.json();
+      })
       .then((payload: {
         configured?: boolean;
         results?: PaperlessDocument[];
@@ -239,8 +247,12 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           tags?: string[];
         };
       }) => {
-        if (!payload.configured || !payload.results) return;
+        if (!payload.configured || !payload.results) {
+          setConnectionError(null);
+          return;
+        }
         setPaperlessConnected(true);
+        setConnectionError(null);
         setDocuments(payload.results);
         if (payload.pagination) setPagination(payload.pagination);
         if (payload.metadata?.correspondents?.length) {
@@ -253,9 +265,9 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           setTagOptions(payload.metadata.tags);
         }
         const preferred = initialDocumentId
-          ? payload.results.find(
+          ? (payload.results.find(
               (document) => document.id === initialDocumentId,
-            )
+            ) ?? payload.results[0])
           : (payload.results.find(
               (document) => document.id === selectedId,
             ) ?? payload.results[0]);
@@ -266,7 +278,9 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        // Demo documents are deliberately available for offline design review.
+        setConnectionError(
+          "Couldn’t refresh Paperless. Check the connection and try again.",
+        );
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoadingDocuments(false);
@@ -284,10 +298,25 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       cache: "no-store",
       signal: controller.signal,
     })
-      .then((response) => response.json())
-      .then((payload: { results?: PaperlessDocument[] }) => {
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Document request failed with ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((payload: {
+        configured?: boolean;
+        results?: PaperlessDocument[];
+      }) => {
         const document = payload.results?.[0];
-        if (!document) return;
+        if (!document) {
+          if (payload.configured) {
+            setToast("Document not found");
+            setMobileDetailOpen(false);
+            window.history.replaceState(null, "", "/");
+          }
+          return;
+        }
         setSelectedId(document.id);
         setSelectedDocument(document);
       })
@@ -311,6 +340,11 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
       if (event.key === "Escape") {
         setUploadOpen(false);
         setTagMenuOpen(false);
+        setFilterOpen(false);
+        setMoreOpen(false);
+        setHelpOpen(false);
+        setAccountOpen(false);
+        setNewViewOpen(false);
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -322,6 +356,23 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     const timer = window.setTimeout(() => setToast(null), 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (!uploadOpen) return;
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const frame = window.requestAnimationFrame(() => {
+      uploadCloseRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      previousFocusRef.current?.focus();
+    };
+  }, [uploadOpen]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -379,11 +430,30 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   async function shareDocument() {
     const url = window.location.href;
     if (navigator.share) {
-      await navigator.share({ title: selected.title, url }).catch(() => {});
-      return;
+      try {
+        await navigator.share({ title: selected.title, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
     }
-    await navigator.clipboard.writeText(url);
-    setToast("Document link copied");
+    try {
+      await navigator.clipboard.writeText(url);
+      setToast("Document link copied");
+    } catch {
+      setToast("Couldn’t copy the document link");
+    }
+  }
+
+  async function copyDocumentId() {
+    try {
+      await navigator.clipboard.writeText(String(selected.id));
+      setToast("Document ID copied");
+    } catch {
+      setToast("Couldn’t copy the document ID");
+    } finally {
+      setMoreOpen(false);
+    }
   }
 
   function updateDocument(patch: Partial<PaperlessDocument>) {
@@ -398,20 +468,30 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   }
 
   async function persistDocument(patch: Partial<PaperlessDocument>) {
+    const previous = selected;
     updateDocument(patch);
+    if (!paperlessConnected) return true;
+
     try {
-      await fetch(`/api/documents/${selected.id}`, {
+      const response = await fetch(`/api/documents/${selected.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
+      if (!response.ok) {
+        throw new Error(`Document update failed with ${response.status}`);
+      }
+      return true;
     } catch {
-      // The local demo remains optimistic when Paperless is not configured.
+      updateDocument(previous);
+      setToast("Couldn’t save the document changes");
+      return false;
     }
   }
 
-  function markReviewed() {
-    persistDocument({ status: "ready" });
+  async function markReviewed() {
+    const saved = await persistDocument({ status: "ready" });
+    if (!saved) return;
     setToast("Document moved out of review");
     const next = visibleDocuments.find((document) => document.id !== selected.id);
     if (next) chooseDocument(next.id);
@@ -429,7 +509,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   }
 
   async function handleUpload(file?: File) {
-    if (!file) return;
+    if (!file || uploading) return;
     setUploading(true);
     const body = new FormData();
     body.append("document", file);
@@ -456,7 +536,11 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         mobileDetailOpen && "has-mobile-detail",
       )}
     >
-      <aside className={cn("sidebar", mobileNavOpen && "sidebar--open")}>
+      <aside
+        id="primary-navigation"
+        className={cn("sidebar", mobileNavOpen && "sidebar--open")}
+        inert={uploadOpen ? true : undefined}
+      >
         <div className="brand-row">
           <div className="brand-mark" aria-hidden="true">
             <span />
@@ -491,6 +575,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               <button
                 key={item.id}
                 className={cn("nav-item", activeView === item.id && "is-active")}
+                aria-current={activeView === item.id ? "page" : undefined}
                 onClick={() => {
                   setActiveView(item.id);
                   setActiveCustomView(null);
@@ -510,13 +595,15 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             <span>Saved views</span>
             <button
               aria-label="Add saved view"
+              aria-expanded={newViewOpen}
+              aria-controls="saved-view-form"
               onClick={() => setNewViewOpen((current) => !current)}
             >
               <Plus size={14} />
             </button>
           </div>
           {newViewOpen ? (
-            <div className="saved-view-form">
+            <div id="saved-view-form" className="saved-view-form">
               <input
                 value={newViewName}
                 onChange={(event) => setNewViewName(event.target.value)}
@@ -578,13 +665,15 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           <div className="sidebar-popover-wrap">
           <button
             className="nav-item"
+            aria-expanded={helpOpen}
+            aria-controls="help-popover"
             onClick={() => setHelpOpen((current) => !current)}
           >
             <CircleHelp size={17} />
             <span>Help & shortcuts</span>
           </button>
           {helpOpen ? (
-            <div className="sidebar-popover">
+            <div id="help-popover" className="sidebar-popover">
               <strong>Shortcuts</strong>
               <span><kbd>⌘ K</kbd> Search</span>
               <span><kbd>⌘ U</kbd> Upload</span>
@@ -595,19 +684,35 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           <div className="sidebar-popover-wrap">
           <button
             className="account-row"
+            aria-expanded={accountOpen}
+            aria-controls="account-popover"
             onClick={() => setAccountOpen((current) => !current)}
           >
-            <span className="avatar">NK</span>
+            <span className="avatar">P</span>
             <span>
-              <strong>Niklas</strong>
-              <small>Administrator</small>
+              <strong>Paperless</strong>
+              <small>
+                {paperlessConnected ? "Connected workspace" : "Local preview"}
+              </small>
             </span>
             <MoreHorizontal size={16} />
           </button>
           {accountOpen ? (
-            <div className="sidebar-popover account-popover">
+            <div id="account-popover" className="sidebar-popover account-popover">
               <strong>Paperless connection</strong>
-              <span className="connection-state"><i /> Connected</span>
+              <span className="connection-state">
+                <i
+                  className={cn(
+                    !paperlessConnected && "is-offline",
+                    connectionError && "is-error",
+                  )}
+                />
+                {paperlessConnected
+                  ? "Connected"
+                  : connectionError
+                    ? "Connection issue"
+                    : "Demo mode"}
+              </span>
               <small>API credentials stay on the server.</small>
             </div>
           ) : null}
@@ -623,13 +728,15 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         />
       ) : null}
 
-      <section className="document-column">
+      <section className="document-column" inert={uploadOpen ? true : undefined}>
         <header className="list-header">
           <div className="mobile-brand">
             <button
               className="icon-button"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation"
+              aria-expanded={mobileNavOpen}
+              aria-controls="primary-navigation"
             >
               <Menu size={19} />
             </button>
@@ -675,12 +782,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             <button
               className={cn("icon-button", filterOpen && "is-pressed")}
               aria-label="Filter documents"
+              aria-expanded={filterOpen}
+              aria-controls="document-filters"
               onClick={() => setFilterOpen((current) => !current)}
             >
               <SlidersHorizontal size={16} />
             </button>
             {filterOpen ? (
-              <div className="filter-popover">
+              <div id="document-filters" className="filter-popover">
                 <div><strong>Filter documents</strong><button onClick={() => { setFilterCorrespondent(""); setFilterType(""); setFilterTag(""); }}>Clear</button></div>
                 <label>Correspondent<select value={filterCorrespondent} onChange={(event) => setFilterCorrespondent(event.target.value)}><option value="">Any</option>{correspondentOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
                 <label>Type<select value={filterType} onChange={(event) => setFilterType(event.target.value)}><option value="">Any</option>{documentTypeOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -690,15 +799,27 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             </div>
             <button
               className="icon-button is-pressed"
-              aria-label={viewMode === "list" ? "Grid view" : "List view"}
+              aria-label={
+                viewMode === "list"
+                  ? "Switch to grid view"
+                  : "Switch to list view"
+              }
               onClick={() =>
                 setViewMode((current) => current === "list" ? "grid" : "list")
               }
             >
-              {viewMode === "list" ? <LayoutList size={16} /> : <Grid2X2 size={16} />}
+              {viewMode === "list" ? <Grid2X2 size={16} /> : <LayoutList size={16} />}
             </button>
           </div>
         </div>
+        {connectionError ? (
+          <div className="connection-banner" role="alert">
+            <span>{connectionError}</span>
+            <button onClick={() => setRefreshKey((current) => current + 1)}>
+              Try again
+            </button>
+          </div>
+        ) : null}
 
         <div
           ref={listRef}
@@ -794,7 +915,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         ) : null}
       </section>
 
-      <section className="preview-column">
+      <section className="preview-column" inert={uploadOpen ? true : undefined}>
         <header className="preview-toolbar">
           <div className="preview-history">
             <button
@@ -839,12 +960,19 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               <Share2 size={17} />
             </Button>
             <div className="more-menu-wrap">
-            <Button variant="ghost" size="icon" aria-label="More options" onClick={() => setMoreOpen((current) => !current)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="More options"
+              aria-expanded={moreOpen}
+              aria-controls="document-more-menu"
+              onClick={() => setMoreOpen((current) => !current)}
+            >
               <MoreHorizontal size={18} />
             </Button>
             {moreOpen ? (
-              <div className="more-menu">
-                <button onClick={async () => { await navigator.clipboard.writeText(String(selected.id)); setToast("Document ID copied"); setMoreOpen(false); }}>Copy document ID</button>
+              <div id="document-more-menu" className="more-menu">
+                <button onClick={copyDocumentId}>Copy document ID</button>
                 <button onClick={() => { persistDocument({ status: selected.status === "review" ? "ready" : "review" }); setMoreOpen(false); }}>{selected.status === "review" ? "Mark reviewed" : "Return to review"}</button>
               </div>
             ) : null}
@@ -855,6 +983,8 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               size="icon"
               onClick={() => setInspectorOpen((current) => !current)}
               aria-label={inspectorOpen ? "Hide details" : "Show details"}
+              aria-expanded={inspectorOpen}
+              aria-controls="document-inspector"
               className={inspectorOpen ? "is-active" : ""}
             >
               {inspectorOpen ? (
@@ -903,7 +1033,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             </div>
           </div>
 
-          <aside className={cn("inspector", !inspectorOpen && "is-hidden")}>
+          <aside
+            id="document-inspector"
+            className={cn("inspector", !inspectorOpen && "is-hidden")}
+          >
             <div className="inspector-scroll">
               <div className="document-heading">
                 <div className="title-icon">
@@ -970,13 +1103,15 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                   <div className="tag-add-wrap">
                     <button
                       className="section-add"
+                      aria-expanded={tagMenuOpen}
+                      aria-controls="tag-menu"
                       onClick={() => setTagMenuOpen((current) => !current)}
                     >
                       <Plus size={14} />
                       Add
                     </button>
                     {tagMenuOpen ? (
-                      <div className="tag-menu">
+                      <div id="tag-menu" className="tag-menu">
                         <span>Add a tag</span>
                         {tagOptions
                           .filter((tag) => !selected.tags.includes(tag))
@@ -1014,8 +1149,8 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                     <dd>{selected.pages}</dd>
                   </div>
                   <div>
-                    <dt>File size</dt>
-                    <dd>{selected.size}</dd>
+                    <dt>Format</dt>
+                    <dd>{selected.format}</dd>
                   </div>
                   <div>
                     <dt>Added</dt>
@@ -1056,6 +1191,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             className="dialog-scrim"
             onClick={() => setUploadOpen(false)}
             aria-label="Close upload"
+            tabIndex={-1}
           />
           <div className="upload-dialog">
             <div className="dialog-heading">
@@ -1064,6 +1200,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                 <h2 id="upload-title">Add a document</h2>
               </div>
               <button
+                ref={uploadCloseRef}
                 className="icon-button"
                 onClick={() => setUploadOpen(false)}
                 aria-label="Close"
@@ -1073,6 +1210,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             </div>
             <label
               className={cn("drop-zone", dragging && "is-dragging")}
+              aria-busy={uploading}
               onDragEnter={() => setDragging(true)}
               onDragLeave={() => setDragging(false)}
               onDragOver={(event) => event.preventDefault()}
@@ -1085,6 +1223,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               <input
                 type="file"
                 accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff"
+                disabled={uploading}
                 onChange={(event) => handleUpload(event.target.files?.[0])}
               />
               <span className="drop-icon">
@@ -1113,9 +1252,15 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
 }
 
 function toDateInputValue(value: string) {
+  const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  if (isoDate) return isoDate;
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function MetadataSelect({

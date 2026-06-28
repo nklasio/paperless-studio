@@ -9,7 +9,7 @@ export type PaperlessDocument = {
   created: string;
   added: string;
   pages: number;
-  size: string;
+  format: string;
   status: DocumentStatus;
   note?: string;
   accent: "blue" | "ochre" | "sage" | "plum" | "slate";
