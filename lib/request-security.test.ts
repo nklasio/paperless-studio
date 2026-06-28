@@ -3,10 +3,11 @@ import { isSameOriginRequest } from "./request-security";
 
 function request(origin?: string) {
   const headers = new Headers();
+  headers.set("host", "studio.example");
   if (origin) headers.set("origin", origin);
   return {
     headers,
-    nextUrl: { origin: "https://studio.example" },
+    url: "https://studio.example/documents",
   };
 }
 
