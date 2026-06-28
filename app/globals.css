@@ -287,6 +287,39 @@ button:disabled {
   gap: 5px;
 }
 
+.sidebar-meta {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  padding: 5px 7px 0;
+  gap: 4px 8px;
+  color: var(--ink-faint);
+  font-size: 9px;
+}
+
+.sidebar-meta > span {
+  font-variant-numeric: tabular-nums;
+}
+
+.sidebar-meta a {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 4px;
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+
+.sidebar-meta a:hover {
+  color: var(--ink);
+}
+
+.sidebar-meta small {
+  grid-column: 1 / -1;
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
 .account-row {
   display: flex;
   align-items: center;

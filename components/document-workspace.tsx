@@ -15,6 +15,7 @@ import {
   FileCheck2,
   FileText,
   Grid2X2,
+  GitFork,
   Inbox,
   LayoutList,
   Maximize2,
@@ -43,6 +44,7 @@ import {
 } from "@/lib/mock-data";
 import type { NavView, PaperlessDocument } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import packageMetadata from "@/package.json";
 
 type Props = {
   initialDocumentId?: number;
@@ -881,6 +883,19 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                 ) : null}
               </div>
             ) : null}
+          </div>
+          <div className="sidebar-meta">
+            <span>v{packageMetadata.version}</span>
+            <a
+              href="https://github.com/nklasio/paperless-studio"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Paperless Studio on GitHub"
+            >
+              <GitFork size={11} />
+              GitHub
+            </a>
+            <small>© 2026 Paperless Studio contributors</small>
           </div>
         </div>
       </aside>
