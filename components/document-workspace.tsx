@@ -1080,7 +1080,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               title="Open PDF in new tab"
               onClick={() => {
                 window.open(
-                  `/api/documents/${selected.id}/preview`,
+                  `/api/documents/${selected.id}/preview?title=${encodeURIComponent(selected.title)}`,
                   "_blank",
                   "noopener,noreferrer",
                 );
@@ -1175,7 +1175,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               <iframe
                 key={`${selected.id}-${previewPage}`}
                 className="pdf-preview"
-                src={`/api/documents/${selected.id}/preview#page=${previewPage}&zoom=page-width`}
+                src={`/api/documents/${selected.id}/preview?title=${encodeURIComponent(selected.title)}#page=${previewPage}&zoom=page-width`}
                 title={`Page ${previewPage} of ${selected.title}`}
               />
             ) : (
