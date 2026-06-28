@@ -121,6 +121,13 @@ tagging and image-version policy.
 
 No client-side environment variables are required.
 
+### Compatibility
+
+The current release is verified against paperless-ngx `2.20.15` (API version
+`9`). Studio requests the stable version 1 response shape and should work with
+older supported Paperless releases; please include your Paperless version when
+reporting an integration issue.
+
 ### Security
 
 Paperless Studio currently has no authentication layer of its own. Every user
