@@ -364,13 +364,17 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      const commandKey = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+      if (commandKey && key === "k") {
         event.preventDefault();
         searchRef.current?.focus();
+        return;
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "u") {
+      if (commandKey && key === "u") {
         event.preventDefault();
         setUploadOpen(true);
+        return;
       }
       if (event.key === "Escape") {
         setUploadOpen(false);
@@ -380,11 +384,39 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         setHelpOpen(false);
         setAccountOpen(false);
         setNewViewOpen(false);
+        return;
+      }
+      if (
+        commandKey ||
+        event.altKey ||
+        event.repeat ||
+        uploadOpen ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+
+      const documentShortcuts: Record<string, () => void> = {
+        "?": () => setHelpOpen((current) => !current),
+        j: () => moveDocument(1),
+        k: () => moveDocument(-1),
+        o: openPdfInNewTab,
+        O: openInPaperless,
+        d: downloadDocument,
+        s: () => void shareDocument(),
+        r: () => void toggleReviewStatus(),
+        c: () => void copyDocumentId(),
+        i: () => setInspectorOpen((current) => !current),
+      };
+      const action = documentShortcuts[event.key] ?? documentShortcuts[key];
+      if (action) {
+        event.preventDefault();
+        action();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  });
 
   useEffect(() => {
     if (!toast) return;
@@ -490,6 +522,39 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
     } finally {
       setMoreOpen(false);
     }
+  }
+
+  function openPdfInNewTab() {
+    window.open(
+      `/api/documents/${selected.id}/preview?title=${encodeURIComponent(selected.title)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
+  function openInPaperless() {
+    if (!selected.sourceUrl) {
+      setToast("Set PAPERLESS_PUBLIC_URL to open documents in Paperless");
+      return;
+    }
+    window.open(selected.sourceUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function downloadDocument() {
+    window.location.href = `/api/documents/${selected.id}/download`;
+  }
+
+  async function toggleReviewStatus() {
+    const nextStatus = selected.status === "review" ? "ready" : "review";
+    const saved = await persistDocument({ status: nextStatus });
+    if (saved) {
+      setToast(
+        nextStatus === "ready"
+          ? "Document marked reviewed"
+          : "Document returned to review",
+      );
+    }
+    setMoreOpen(false);
   }
 
   async function signOut() {
@@ -721,17 +786,53 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               <span>Help & shortcuts</span>
             </button>
             {helpOpen ? (
-              <div id="help-popover" className="sidebar-popover">
+              <div
+                id="help-popover"
+                className="sidebar-popover shortcuts-popover"
+              >
                 <strong>Shortcuts</strong>
-                <span>
-                  <kbd>⌘ K</kbd> Search
-                </span>
-                <span>
-                  <kbd>⌘ U</kbd> Upload
-                </span>
-                <span>
-                  <kbd>Esc</kbd> Close menus
-                </span>
+                <div className="shortcut-group">
+                  <small>Global</small>
+                  <span>
+                    <kbd>⌘ K</kbd> Search
+                  </span>
+                  <span>
+                    <kbd>⌘ U</kbd> Upload
+                  </span>
+                  <span>
+                    <kbd>?</kbd> Shortcut help
+                  </span>
+                  <span>
+                    <kbd>Esc</kbd> Close menus
+                  </span>
+                </div>
+                <div className="shortcut-group">
+                  <small>Document</small>
+                  <span>
+                    <kbd>J / K</kbd> Next / previous
+                  </span>
+                  <span>
+                    <kbd>O</kbd> Open PDF
+                  </span>
+                  <span>
+                    <kbd>⇧ O</kbd> Show in Paperless
+                  </span>
+                  <span>
+                    <kbd>D</kbd> Download
+                  </span>
+                  <span>
+                    <kbd>S</kbd> Share
+                  </span>
+                  <span>
+                    <kbd>R</kbd> Toggle review
+                  </span>
+                  <span>
+                    <kbd>C</kbd> Copy document ID
+                  </span>
+                  <span>
+                    <kbd>I</kbd> Toggle details
+                  </span>
+                </div>
               </div>
             ) : null}
           </div>
@@ -1045,6 +1146,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
             <button
               className="icon-button"
               aria-label="Previous document"
+              title="Previous document (K)"
               disabled={selectedIndex <= 0}
               onClick={() => moveDocument(-1)}
             >
@@ -1053,6 +1155,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
             <button
               className="icon-button"
               aria-label="Next document"
+              title="Next document (J)"
               disabled={
                 selectedIndex < 0 ||
                 selectedIndex >= visibleDocuments.length - 1
@@ -1067,9 +1170,8 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               variant="ghost"
               size="icon"
               aria-label="Download document"
-              onClick={() => {
-                window.location.href = `/api/documents/${selected.id}/download`;
-              }}
+              title="Download document (D)"
+              onClick={downloadDocument}
             >
               <Download size={17} />
             </Button>
@@ -1077,14 +1179,8 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               variant="ghost"
               size="icon"
               aria-label="Open PDF in new tab"
-              title="Open PDF in new tab"
-              onClick={() => {
-                window.open(
-                  `/api/documents/${selected.id}/preview?title=${encodeURIComponent(selected.title)}`,
-                  "_blank",
-                  "noopener,noreferrer",
-                );
-              }}
+              title="Open PDF in new tab (O)"
+              onClick={openPdfInNewTab}
             >
               <Maximize2 size={17} />
             </Button>
@@ -1092,7 +1188,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               variant="ghost"
               size="icon"
               aria-label="Share document"
-              title="Share document"
+              title="Share document (S)"
               onClick={shareDocument}
             >
               <Share2 size={17} />
@@ -1102,14 +1198,8 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                 variant="ghost"
                 size="icon"
                 aria-label="Show in Paperless"
-                title="Show in Paperless"
-                onClick={() => {
-                  window.open(
-                    selected.sourceUrl,
-                    "_blank",
-                    "noopener,noreferrer",
-                  );
-                }}
+                title="Show in Paperless (Shift+O)"
+                onClick={openInPaperless}
               >
                 <ExternalLink size={17} />
               </Button>
@@ -1127,19 +1217,17 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               </Button>
               {moreOpen ? (
                 <div id="document-more-menu" className="more-menu">
-                  <button onClick={copyDocumentId}>Copy document ID</button>
-                  <button
-                    onClick={() => {
-                      persistDocument({
-                        status:
-                          selected.status === "review" ? "ready" : "review",
-                      });
-                      setMoreOpen(false);
-                    }}
-                  >
-                    {selected.status === "review"
-                      ? "Mark reviewed"
-                      : "Return to review"}
+                  <button onClick={copyDocumentId}>
+                    <span>Copy document ID</span>
+                    <kbd>C</kbd>
+                  </button>
+                  <button onClick={toggleReviewStatus}>
+                    <span>
+                      {selected.status === "review"
+                        ? "Mark reviewed"
+                        : "Return to review"}
+                    </span>
+                    <kbd>R</kbd>
                   </button>
                 </div>
               ) : null}
@@ -1150,6 +1238,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               size="icon"
               onClick={() => setInspectorOpen((current) => !current)}
               aria-label={inspectorOpen ? "Hide details" : "Show details"}
+              title={`${inspectorOpen ? "Hide" : "Show"} details (I)`}
               aria-expanded={inspectorOpen}
               aria-controls="document-inspector"
               className={inspectorOpen ? "is-active" : ""}
@@ -1423,6 +1512,14 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         </div>
       ) : null}
     </main>
+  );
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
   );
 }
 
