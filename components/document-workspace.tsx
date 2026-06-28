@@ -586,7 +586,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
             <span />
             <span />
           </div>
-          <span className="brand-name">Paperless</span>
+          <span className="brand-name">Paperless Studio</span>
           <button
             className="icon-button sidebar-close"
             onClick={() => setMobileNavOpen(false)}
