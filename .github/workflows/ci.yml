@@ -44,4 +44,19 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Build image
-        run: docker build --tag paperless-studio:ci .
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if docker build --tag paperless-studio:ci .; then
+              exit 0
+            fi
+
+            if [[ "$attempt" == "3" ]]; then
+              echo "::error::Container build failed after 3 attempts."
+              exit 1
+            fi
+
+            delay=$((attempt * 15))
+            echo "::warning::Container build attempt $attempt failed; retrying in ${delay}s."
+            sleep "$delay"
+          done

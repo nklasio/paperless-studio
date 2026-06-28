@@ -202,7 +202,8 @@ configured.
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before making a larger change.
 It documents the data flow, extension points, and current tradeoffs. The
 [project roadmap](ROADMAP.md) describes the next release target and its
-acceptance criteria.
+acceptance criteria. Release changes are recorded in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 
