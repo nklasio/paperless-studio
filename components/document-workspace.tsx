@@ -11,11 +11,13 @@ import {
   Clock3,
   Command,
   Download,
+  ExternalLink,
   FileCheck2,
   FileText,
   Grid2X2,
   Inbox,
   LayoutList,
+  Maximize2,
   Menu,
   MoreHorizontal,
   PanelRightClose,
@@ -1074,11 +1076,44 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Open PDF in new tab"
+              title="Open PDF in new tab"
+              onClick={() => {
+                window.open(
+                  `/api/documents/${selected.id}/preview`,
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+            >
+              <Maximize2 size={17} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               aria-label="Share document"
+              title="Share document"
               onClick={shareDocument}
             >
               <Share2 size={17} />
             </Button>
+            {selected.sourceUrl ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Show in Paperless"
+                title="Show in Paperless"
+                onClick={() => {
+                  window.open(
+                    selected.sourceUrl,
+                    "_blank",
+                    "noopener,noreferrer",
+                  );
+                }}
+              >
+                <ExternalLink size={17} />
+              </Button>
+            ) : null}
             <div className="more-menu-wrap">
               <Button
                 variant="ghost"

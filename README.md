@@ -46,6 +46,7 @@ when you are ready to use live documents:
 ```env
 PAPERLESS_URL=http://localhost:8000
 PAPERLESS_TOKEN=replace-with-your-api-token
+PAPERLESS_PUBLIC_URL=http://localhost:8000
 ```
 
 ## Add it to a Paperless Docker Compose stack
@@ -63,6 +64,7 @@ services:
     environment:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
+      PAPERLESS_PUBLIC_URL: ${PAPERLESS_PUBLIC_URL}
       PAPERLESS_STUDIO_USERNAME: ${PAPERLESS_STUDIO_USERNAME}
       PAPERLESS_STUDIO_PASSWORD: ${PAPERLESS_STUDIO_PASSWORD}
       PAPERLESS_STUDIO_SESSION_SECRET: ${PAPERLESS_STUDIO_SESSION_SECRET}
@@ -76,6 +78,7 @@ Add the token to the `.env` file used by Docker Compose:
 
 ```env
 PAPERLESS_STUDIO_TOKEN=replace-with-your-api-token
+PAPERLESS_PUBLIC_URL=https://paperless.example.com
 PAPERLESS_STUDIO_USERNAME=studio
 PAPERLESS_STUDIO_PASSWORD=replace-with-a-strong-password
 PAPERLESS_STUDIO_SESSION_SECRET=replace-with-at-least-32-random-characters
@@ -106,6 +109,7 @@ services:
     environment:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
+      PAPERLESS_PUBLIC_URL: ${PAPERLESS_PUBLIC_URL}
       PAPERLESS_STUDIO_USERNAME: ${PAPERLESS_STUDIO_USERNAME}
       PAPERLESS_STUDIO_PASSWORD: ${PAPERLESS_STUDIO_PASSWORD}
       PAPERLESS_STUDIO_SESSION_SECRET: ${PAPERLESS_STUDIO_SESSION_SECRET}
@@ -125,6 +129,7 @@ tagging and image-version policy.
 | --------------------------------- | ------------- | ----------------------------------------------------------------- |
 | `PAPERLESS_URL`                   | For live data | Base URL reachable by the Studio server, without a trailing slash |
 | `PAPERLESS_TOKEN`                 | For live data | Paperless API token; kept on the server                           |
+| `PAPERLESS_PUBLIC_URL`            | No            | Browser-facing Paperless URL for “Show in Paperless”              |
 | `PAPERLESS_REQUEST_TIMEOUT_MS`    | No            | Upstream request timeout in milliseconds; defaults to `15000`     |
 | `PAPERLESS_MAX_UPLOAD_SIZE_MB`    | No            | Maximum accepted upload size in MiB; defaults to `100`            |
 | `PAPERLESS_STUDIO_USERNAME`       | No            | Enables the local account when set with the other auth variables  |

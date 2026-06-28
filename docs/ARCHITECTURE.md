@@ -45,6 +45,10 @@ Route handlers under `app/api/documents` translate between the UI's
 - Preview and download routes stream document files without exposing the API
   token.
 
+`PAPERLESS_URL` is the server-to-server address. `PAPERLESS_PUBLIC_URL` is
+optional and may point at a different browser-facing origin; Studio uses it only
+to construct “Show in Paperless” document links.
+
 Keep Paperless-specific field names and authentication in this layer. UI
 components should use the types in `lib/types.ts`. Shared upstream
 configuration, authentication, and timeouts live in `lib/paperless-api.ts`;

@@ -12,6 +12,7 @@ export type PaperlessDocument = {
   format: string;
   status: DocumentStatus;
   note?: string;
+  sourceUrl?: string;
   accent: "blue" | "ochre" | "sage" | "plum" | "slate";
 };
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireDocumentAuthentication } from "@/lib/auth-route";
 import { paperlessConfiguration, paperlessFetch } from "@/lib/paperless-api";
+import { paperlessDocumentUrl } from "@/lib/paperless-links";
 import {
   buildDocumentQuery,
   type PaperlessMetadataItem,
@@ -179,6 +180,10 @@ export async function GET(request: NextRequest) {
         status: tags.some((tag) => tag.toLowerCase() === "needs review")
           ? "review"
           : "ready",
+        sourceUrl: paperlessDocumentUrl(
+          process.env.PAPERLESS_PUBLIC_URL,
+          document.id,
+        ),
         accent: accents[document.id % accents.length],
       };
     });
