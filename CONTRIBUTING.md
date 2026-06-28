@@ -36,7 +36,9 @@ Paperless instance rather than a server containing sensitive documents.
 6. Update documentation when behavior or setup changes.
 
 The architecture guide in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-explains where common changes belong.
+explains where common changes belong. Use [ROADMAP.md](ROADMAP.md) to understand
+release priorities, but open an issue before claiming a substantial roadmap item
+so its first deliverable stays reviewable.
 
 ## Checks
 

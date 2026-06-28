@@ -176,7 +176,9 @@ Paperless integration is isolated in server-side route handlers under
 configured.
 
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before making a larger change.
-It documents the data flow, extension points, and current tradeoffs.
+It documents the data flow, extension points, and current tradeoffs. The
+[project roadmap](ROADMAP.md) describes the next release target and its
+acceptance criteria.
 
 ## Contributing
 
@@ -194,7 +196,8 @@ to reproduce problems quickly. Participation is covered by the
 Paperless Studio is early-stage software. Core document workflows work, but the
 API layer and component boundaries are still intentionally small and
 approachable. Expect iteration, and please open an issue before investing in a
-large architectural change.
+large architectural change. The current planned milestone is `v0.2.0`, focused
+on daily-driver reliability.
 
 ## License
 
