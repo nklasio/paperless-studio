@@ -133,6 +133,26 @@ tagging and image-version policy.
 
 No client-side environment variables are required.
 
+### Generate a session secret
+
+The built-in local account needs a random signing secret. Generate one with:
+
+```bash
+openssl rand -hex 32
+```
+
+Copy the output into your environment or Compose `.env` file:
+
+```env
+PAPERLESS_STUDIO_USERNAME=studio
+PAPERLESS_STUDIO_PASSWORD=replace-with-a-strong-password
+PAPERLESS_STUDIO_SESSION_SECRET=paste-the-generated-value-here
+```
+
+The generated value signs Studio login sessions; it is not a Paperless API token
+or a browser session cookie. Restart Studio after changing it. Existing login
+sessions become invalid when the secret changes.
+
 ### Compatibility
 
 The current release is verified against paperless-ngx `2.20.15` (API version
@@ -142,11 +162,10 @@ reporting an integration issue.
 
 ### Security
 
-Paperless Studio provides an optional environment-defined local account.
-Generate its session secret with `openssl rand -hex 32`; leaving all three
-authentication variables unset preserves contributor demo mode. Every signed-in
-user still acts through the configured Paperless token and receives that token's
-permissions.
+Paperless Studio provides an optional environment-defined local account. Leaving
+all three authentication variables unset preserves contributor demo mode. Every
+signed-in user still acts through the configured Paperless token and receives
+that token's permissions.
 
 For remote access, terminate HTTPS at a trusted reverse proxy and use a
 dedicated Paperless account with the least privileges you need. See
