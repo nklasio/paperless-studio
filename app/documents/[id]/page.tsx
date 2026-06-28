@@ -1,4 +1,5 @@
 import { DocumentWorkspace } from "@/components/document-workspace";
+import { notFound } from "next/navigation";
 
 export default async function DocumentPage({
   params,
@@ -6,5 +7,8 @@ export default async function DocumentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <DocumentWorkspace initialDocumentId={Number(id)} />;
+  const documentId = Number(id);
+  if (!Number.isSafeInteger(documentId) || documentId <= 0) notFound();
+
+  return <DocumentWorkspace initialDocumentId={documentId} />;
 }

@@ -26,7 +26,8 @@ Do not include live API tokens, private documents, or personal information.
 ## Deployment model
 
 Paperless Studio stores no Paperless credential in browser code. Server-side
-route handlers use `PAPERLESS_TOKEN` to communicate with Paperless.
+route handlers use `PAPERLESS_TOKEN` to communicate with Paperless. Upload and
+metadata mutation routes reject cross-origin browser requests.
 
 The app does not currently authenticate its own users or reproduce Paperless
 user sessions. Anyone who can reach Studio can act with the configured token's

@@ -14,6 +14,13 @@ export async function GET(
   }
 
   const { id } = await params;
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json(
+      { error: "Invalid document ID" },
+      { status: 400 },
+    );
+  }
+
   const response = await fetch(`${url}/api/documents/${id}/download/`, {
     headers: { Authorization: `Token ${token}` },
     cache: "no-store",

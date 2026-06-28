@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSameOriginRequest } from "@/lib/request-security";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json(
+      { error: "Cross-origin requests are not allowed" },
+      { status: 403 },
+    );
+  }
+
   const url = process.env.PAPERLESS_URL?.replace(/\/$/, "");
   const token = process.env.PAPERLESS_TOKEN;
   if (!url || !token) {
@@ -14,19 +22,46 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const patch = (await request.json()) as {
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json(
+      { error: "Invalid document ID" },
+      { status: 400 },
+    );
+  }
+
+  let patch: {
     correspondent?: string;
     documentType?: string;
     tags?: string[];
     status?: "review" | "ready";
     created?: string;
   };
+  try {
+    patch = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 },
+    );
+  }
+
   const headers = { Authorization: `Token ${token}` };
-  const [correspondentResponse, typeResponse, tagResponse] = await Promise.all([
+  const metadataResponses = await Promise.all([
     fetch(`${url}/api/correspondents/?page_size=1000`, { headers }),
     fetch(`${url}/api/document_types/?page_size=1000`, { headers }),
     fetch(`${url}/api/tags/?page_size=1000`, { headers }),
   ]);
+  const failedMetadataResponse = metadataResponses.find(
+    (response) => !response.ok,
+  );
+  if (failedMetadataResponse) {
+    return NextResponse.json(
+      { error: "Could not load Paperless metadata" },
+      { status: failedMetadataResponse.status },
+    );
+  }
+
+  const [correspondentResponse, typeResponse, tagResponse] = metadataResponses;
   const [correspondentPayload, typePayload, tagPayload] = await Promise.all([
     correspondentResponse.json(),
     typeResponse.json(),
@@ -38,6 +73,12 @@ export async function PATCH(
   const types = byName(typePayload.results ?? []);
   const tags = byName(tagPayload.results ?? []);
   const currentResponse = await fetch(`${url}/api/documents/${id}/`, { headers });
+  if (!currentResponse.ok) {
+    return NextResponse.json(
+      { error: "Could not load the Paperless document" },
+      { status: currentResponse.status },
+    );
+  }
   const current = await currentResponse.json();
   const body: Record<string, number | number[] | string | null> = {};
 
@@ -67,9 +108,13 @@ export async function PATCH(
           text_color: "#ffffff",
         }),
       });
-      if (createResponse.ok) {
-        reviewTag = (await createResponse.json()).id as number;
+      if (!createResponse.ok) {
+        return NextResponse.json(
+          { error: "Could not create the Needs review tag" },
+          { status: createResponse.status },
+        );
       }
+      reviewTag = (await createResponse.json()).id as number;
     }
     const currentTags = (current.tags ?? []) as number[];
     body.tags =

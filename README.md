@@ -66,7 +66,7 @@ services:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - webserver
 ```
@@ -80,7 +80,9 @@ PAPERLESS_STUDIO_TOKEN=replace-with-your-api-token
 The snippet assumes the Paperless service is named `webserver`, as in the
 standard paperless-ngx Compose setup. Change both references if your service
 has a different name. Compose puts both services on the same default network,
-so Paperless does not need to be exposed on a host port.
+so Paperless does not need to be exposed on a host port. Studio binds to the
+host's loopback interface by default; use an authenticated reverse proxy on
+the Compose network for remote access.
 
 Build and start only the new service:
 
@@ -101,7 +103,7 @@ services:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - webserver
 ```

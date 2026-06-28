@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSameOriginRequest } from "@/lib/request-security";
 
 function configuration() {
   const url = process.env.PAPERLESS_URL?.replace(/\/$/, "");
@@ -131,7 +132,10 @@ export async function GET(request: NextRequest) {
         created: formatDate(document.created),
         added: formatDate(document.added),
         pages: document.page_count ?? 1,
-        size: document.original_file_name?.split(".").pop()?.toUpperCase() ?? "PDF",
+        format:
+          document.original_file_name
+            ?.match(/\.([^.]+)$/)?.[1]
+            ?.toUpperCase() ?? "PDF",
         status: tags.some((tag) => tag.toLowerCase() === "needs review")
           ? "review"
           : "ready",
@@ -157,6 +161,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json(
+      { error: "Cross-origin requests are not allowed" },
+      { status: 403 },
+    );
+  }
+
   const config = configuration();
   if (!config) {
     return NextResponse.json(
@@ -166,6 +177,14 @@ export async function POST(request: NextRequest) {
   }
 
   const formData = await request.formData();
+  const document = formData.get("document");
+  if (!(document instanceof File) || document.size === 0) {
+    return NextResponse.json(
+      { error: "A non-empty document file is required" },
+      { status: 400 },
+    );
+  }
+
   const response = await fetch(`${config.url}/api/documents/post_document/`, {
     method: "POST",
     headers: { Authorization: `Token ${config.token}` },
