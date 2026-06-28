@@ -1,11 +1,11 @@
+.git
+.github
 .next
-out
-coverage
 node_modules
+npm-debug.log*
 .DS_Store
 .env
-.env.local
 .env.*
 !.env.example
-npm-debug.log*
-*.tsbuildinfo
+coverage
+docs
