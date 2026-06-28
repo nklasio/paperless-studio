@@ -22,7 +22,6 @@ export async function GET(
   }
 
   const response = await paperlessFetch(`/api/documents/${id}/preview/`, {
-    headers: { Accept: "application/pdf" },
     cache: "no-store",
   });
 

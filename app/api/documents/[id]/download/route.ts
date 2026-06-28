@@ -22,7 +22,6 @@ export async function GET(
   }
 
   const response = await paperlessFetch(`/api/documents/${id}/download/`, {
-    headers: { Accept: "application/octet-stream" },
     cache: "no-store",
   });
 
