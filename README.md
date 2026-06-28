@@ -118,6 +118,8 @@ tagging and image-version policy.
 | --- | --- | --- |
 | `PAPERLESS_URL` | For live data | Base URL reachable by the Studio server, without a trailing slash |
 | `PAPERLESS_TOKEN` | For live data | Paperless API token; kept on the server |
+| `PAPERLESS_REQUEST_TIMEOUT_MS` | No | Upstream request timeout in milliseconds; defaults to `15000` |
+| `PAPERLESS_MAX_UPLOAD_SIZE_MB` | No | Maximum accepted upload size in MiB; defaults to `100` |
 
 No client-side environment variables are required.
 

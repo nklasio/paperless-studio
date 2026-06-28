@@ -41,7 +41,9 @@ Route handlers under `app/api/documents` translate between the UI's
   token.
 
 Keep Paperless-specific field names and authentication in this layer. UI
-components should use the types in `lib/types.ts`.
+components should use the types in `lib/types.ts`. Shared upstream
+configuration, authentication, and timeouts live in `lib/paperless-api.ts`;
+query translation lives in `lib/paperless-query.ts`.
 
 ### Offline UI mode
 
@@ -61,9 +63,10 @@ can work on the interface without private infrastructure.
 
 ## Adding a view or filter
 
-Prefer a Paperless query parameter for filters that can affect many
-documents. Client-side filters only operate on the current paginated result
-and should not imply that they search the whole archive.
+Views and metadata filters are translated to Paperless query parameters before
+pagination. Keep filters that can affect many documents in that server-side
+query path. Demo mode intentionally mirrors those filters over its small local
+fixture set.
 
 Keep URL/state behavior explicit if a view should be linkable or survive a
 reload.

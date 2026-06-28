@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import {
+  paperlessConfiguration,
+  paperlessFetch,
+  validPaperlessId,
+} from "@/lib/paperless-api";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const url = process.env.PAPERLESS_URL?.replace(/\/$/, "");
-  const token = process.env.PAPERLESS_TOKEN;
-  if (!url || !token) {
+  if (!paperlessConfiguration()) {
     return NextResponse.json(
       { error: "Paperless is not configured" },
       { status: 503 },
@@ -14,15 +17,15 @@ export async function GET(
   }
 
   const { id } = await params;
-  if (!/^\d+$/.test(id)) {
+  if (!validPaperlessId(id)) {
     return NextResponse.json(
       { error: "Invalid document ID" },
       { status: 400 },
     );
   }
 
-  const response = await fetch(`${url}/api/documents/${id}/preview/`, {
-    headers: { Authorization: `Token ${token}` },
+  const response = await paperlessFetch(`/api/documents/${id}/preview/`, {
+    headers: { Accept: "application/pdf" },
     cache: "no-store",
   });
 

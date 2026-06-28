@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  paperlessConfiguration,
+  paperlessFetch,
+  validPaperlessId,
+} from "@/lib/paperless-api";
 import { isSameOriginRequest } from "@/lib/request-security";
 
 export async function PATCH(
@@ -12,9 +17,7 @@ export async function PATCH(
     );
   }
 
-  const url = process.env.PAPERLESS_URL?.replace(/\/$/, "");
-  const token = process.env.PAPERLESS_TOKEN;
-  if (!url || !token) {
+  if (!paperlessConfiguration()) {
     return NextResponse.json(
       { error: "Paperless is not configured" },
       { status: 503 },
@@ -22,7 +25,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  if (!/^\d+$/.test(id)) {
+  if (!validPaperlessId(id)) {
     return NextResponse.json(
       { error: "Invalid document ID" },
       { status: 400 },
@@ -45,11 +48,10 @@ export async function PATCH(
     );
   }
 
-  const headers = { Authorization: `Token ${token}` };
   const metadataResponses = await Promise.all([
-    fetch(`${url}/api/correspondents/?page_size=1000`, { headers }),
-    fetch(`${url}/api/document_types/?page_size=1000`, { headers }),
-    fetch(`${url}/api/tags/?page_size=1000`, { headers }),
+    paperlessFetch("/api/correspondents/?page_size=1000"),
+    paperlessFetch("/api/document_types/?page_size=1000"),
+    paperlessFetch("/api/tags/?page_size=1000"),
   ]);
   const failedMetadataResponse = metadataResponses.find(
     (response) => !response.ok,
@@ -72,7 +74,7 @@ export async function PATCH(
   const correspondents = byName(correspondentPayload.results ?? []);
   const types = byName(typePayload.results ?? []);
   const tags = byName(tagPayload.results ?? []);
-  const currentResponse = await fetch(`${url}/api/documents/${id}/`, { headers });
+  const currentResponse = await paperlessFetch(`/api/documents/${id}/`);
   if (!currentResponse.ok) {
     return NextResponse.json(
       { error: "Could not load the Paperless document" },
@@ -96,10 +98,9 @@ export async function PATCH(
   } else if (patch.status) {
     let reviewTag = tags.get("needs review");
     if (patch.status === "review" && !reviewTag) {
-      const createResponse = await fetch(`${url}/api/tags/`, {
+      const createResponse = await paperlessFetch("/api/tags/", {
         method: "POST",
         headers: {
-          ...headers,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -126,10 +127,9 @@ export async function PATCH(
     body.created = patch.created;
   }
 
-  const response = await fetch(`${url}/api/documents/${id}/`, {
+  const response = await paperlessFetch(`/api/documents/${id}/`, {
     method: "PATCH",
     headers: {
-      Authorization: `Token ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),

@@ -146,12 +146,16 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const selected =
     documents.find((document) => document.id === selectedId) ??
     selectedDocument;
+  const activeCustomTag = customViews.find(
+    (view) => view.id === activeCustomView,
+  )?.tag;
 
   const visibleDocuments = useMemo(() => {
+    if (paperlessConnected) return documents;
+
     const normalized = query.trim().toLowerCase();
     return documents.filter((document) => {
       const matchesQuery =
-        paperlessConnected ||
         !normalized ||
         [
           document.title,
@@ -176,7 +180,9 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             ["Business", "Geschäftlich"].includes(tag),
           ));
 
-      const customView = customViews.find((view) => view.id === activeCustomView);
+      const customView = customViews.find(
+        (view) => view.id === activeCustomView,
+      );
       const matchesCustom =
         !customView || document.tags.includes(customView.tag);
       const matchesFilters =
@@ -212,12 +218,29 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   }, [query]);
 
   useEffect(() => {
+    setPage(1);
+  }, [
+    activeCustomView,
+    activeView,
+    filterCorrespondent,
+    filterTag,
+    filterType,
+  ]);
+
+  useEffect(() => {
     const controller = new AbortController();
     const params = new URLSearchParams({
       page: String(page),
       page_size: String(PAGE_SIZE),
     });
     if (debouncedQuery) params.set("query", debouncedQuery);
+    params.set("view", activeView);
+    if (activeCustomTag) params.set("custom_tag", activeCustomTag);
+    if (filterCorrespondent) {
+      params.set("correspondent", filterCorrespondent);
+    }
+    if (filterType) params.set("document_type", filterType);
+    if (filterTag) params.set("tag", filterTag);
 
     setLoadingDocuments(true);
     fetch(`/api/documents?${params}`, {
@@ -288,7 +311,17 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery, initialDocumentId, page, refreshKey]);
+  }, [
+    activeCustomTag,
+    activeView,
+    debouncedQuery,
+    filterCorrespondent,
+    filterTag,
+    filterType,
+    initialDocumentId,
+    page,
+    refreshKey,
+  ]);
 
   useEffect(() => {
     if (!initialDocumentId) return;
@@ -567,7 +600,8 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const count =
-              item.id === "inbox" || item.id === "review"
+              !paperlessConnected &&
+              (item.id === "inbox" || item.id === "review")
                 ? documents.filter((document) => document.status === "review")
                     .length
                 : undefined;
@@ -773,10 +807,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
           </div>
           <div className="toolbar-actions">
             <span>
-              {paperlessConnected &&
-              (activeView === "recent" || activeView === "all")
-                ? pagination.count
-                : visibleDocuments.length}
+              {paperlessConnected ? pagination.count : visibleDocuments.length}
             </span>
             <div className="toolbar-popover-wrap">
             <button

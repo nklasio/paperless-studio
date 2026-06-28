@@ -1,124 +1,164 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  paperlessConfiguration,
+  paperlessFetch,
+} from "@/lib/paperless-api";
+import {
+  buildDocumentQuery,
+  type PaperlessMetadataItem,
+} from "@/lib/paperless-query";
 import { isSameOriginRequest } from "@/lib/request-security";
 
-function configuration() {
-  const url = process.env.PAPERLESS_URL?.replace(/\/$/, "");
-  const token = process.env.PAPERLESS_TOKEN;
-  return url && token ? { url, token } : null;
+type PaperlessCollection<T> = {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: T[];
+};
+
+type PaperlessDocumentRecord = {
+  id: number;
+  title: string;
+  correspondent: number | null;
+  document_type: number | null;
+  tags: number[];
+  created: string;
+  added: string;
+  page_count?: number;
+  original_file_name?: string;
+};
+
+function requestedPositiveInteger(
+  value: string | null,
+  fallback: number,
+  maximum?: number,
+) {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return maximum ? Math.min(parsed, maximum) : parsed;
+}
+
+async function readCollection<T>(response: Response) {
+  const payload = (await response.json()) as PaperlessCollection<T>;
+  return {
+    ...payload,
+    results: Array.isArray(payload.results) ? payload.results : [],
+  };
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return "Unknown";
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function emptyPagination(page: number, pageSize: number) {
+  return {
+    count: 0,
+    page,
+    pageSize,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
+  };
 }
 
 export async function GET(request: NextRequest) {
-  const config = configuration();
-  if (!config) {
+  if (!paperlessConfiguration()) {
     return NextResponse.json(
       { configured: false, results: [] },
       { status: 200 },
     );
   }
 
-  const search = request.nextUrl.searchParams.get("query") ?? "";
-  const requestedPage = Number(request.nextUrl.searchParams.get("page") ?? 1);
-  const requestedPageSize = Number(
-    request.nextUrl.searchParams.get("page_size") ?? 20,
+  const searchParams = request.nextUrl.searchParams;
+  const page = requestedPositiveInteger(searchParams.get("page"), 1);
+  const pageSize = requestedPositiveInteger(
+    searchParams.get("page_size"),
+    20,
+    50,
   );
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const pageSize =
-    Number.isInteger(requestedPageSize) && requestedPageSize > 0
-      ? Math.min(requestedPageSize, 50)
-      : 20;
-  const documentParams = new URLSearchParams({
-    page: String(page),
-    page_size: String(pageSize),
-  });
-  if (search.trim()) {
-    documentParams.set("query", search.trim());
-  }
-  const documentId = request.nextUrl.searchParams.get("id");
-  if (documentId && /^\d+$/.test(documentId)) {
-    documentParams.set("id__in", documentId);
-  }
-  const headers = { Authorization: `Token ${config.token}` };
-  const [documentResponse, correspondentResponse, typeResponse, tagResponse] =
-    await Promise.all([
-      fetch(`${config.url}/api/documents/?${documentParams}`, {
-        headers,
-        cache: "no-store",
-      }),
-      fetch(`${config.url}/api/correspondents/?page_size=1000`, {
-        headers,
+
+  try {
+    const metadataResponses = await Promise.all([
+      paperlessFetch("/api/correspondents/?page_size=1000", {
         next: { revalidate: 300 },
       }),
-      fetch(`${config.url}/api/document_types/?page_size=1000`, {
-        headers,
+      paperlessFetch("/api/document_types/?page_size=1000", {
         next: { revalidate: 300 },
       }),
-      fetch(`${config.url}/api/tags/?page_size=1000`, {
-        headers,
+      paperlessFetch("/api/tags/?page_size=1000", {
         next: { revalidate: 300 },
       }),
     ]);
-
-  if (
-    !documentResponse.ok ||
-    !correspondentResponse.ok ||
-    !typeResponse.ok ||
-    !tagResponse.ok
-  ) {
-    return NextResponse.json(
-      { error: "Paperless request failed" },
-      {
-        status: [
-          documentResponse,
-          correspondentResponse,
-          typeResponse,
-          tagResponse,
-        ].find((response) => !response.ok)?.status,
-      },
+    const failedMetadataResponse = metadataResponses.find(
+      (response) => !response.ok,
     );
-  }
+    if (failedMetadataResponse) {
+      return NextResponse.json(
+        { error: "Could not load Paperless metadata" },
+        { status: failedMetadataResponse.status },
+      );
+    }
 
-  const [documentPayload, correspondentPayload, typePayload, tagPayload] =
-    await Promise.all([
-      documentResponse.json(),
-      correspondentResponse.json(),
-      typeResponse.json(),
-      tagResponse.json(),
+    const [correspondentPayload, typePayload, tagPayload] = await Promise.all([
+      readCollection<PaperlessMetadataItem>(metadataResponses[0]),
+      readCollection<PaperlessMetadataItem>(metadataResponses[1]),
+      readCollection<PaperlessMetadataItem>(metadataResponses[2]),
     ]);
-
-  const names = <T extends { id: number; name: string }>(items: T[]) =>
-    new Map(items.map((item) => [item.id, item.name]));
-  const correspondentNames = names(correspondentPayload.results ?? []);
-  const typeNames = names(typePayload.results ?? []);
-  const tagNames = names(tagPayload.results ?? []);
-  const metadata = {
-    correspondents: Array.from(correspondentNames.values()).sort(),
-    documentTypes: Array.from(typeNames.values()).sort(),
-    tags: Array.from(tagNames.values()).sort(),
-  };
-  const accents = ["blue", "ochre", "sage", "plum", "slate"] as const;
-  const formatDate = (value: string) =>
-    new Intl.DateTimeFormat("en", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(new Date(value));
-
-  const results = (documentPayload.results ?? []).map(
-    (
-      document: {
-        id: number;
-        title: string;
-        correspondent: number | null;
-        document_type: number | null;
-        tags: number[];
-        created: string;
-        added: string;
-        page_count?: number;
-        original_file_name?: string;
+    const { params, hasMatches } = buildDocumentQuery(
+      {
+        page,
+        pageSize,
+        query: searchParams.get("query") ?? undefined,
+        documentId: searchParams.get("id") ?? undefined,
+        view: searchParams.get("view") ?? undefined,
+        customTag: searchParams.get("custom_tag") ?? undefined,
+        correspondent: searchParams.get("correspondent") ?? undefined,
+        documentType: searchParams.get("document_type") ?? undefined,
+        tag: searchParams.get("tag") ?? undefined,
       },
-      index: number,
-    ) => {
+      tagPayload.results,
+    );
+
+    const names = (items: PaperlessMetadataItem[]) =>
+      new Map(items.map((item) => [item.id, item.name]));
+    const correspondentNames = names(correspondentPayload.results);
+    const typeNames = names(typePayload.results);
+    const tagNames = names(tagPayload.results);
+    const metadata = {
+      correspondents: Array.from(correspondentNames.values()).sort(),
+      documentTypes: Array.from(typeNames.values()).sort(),
+      tags: Array.from(tagNames.values()).sort(),
+    };
+
+    if (!hasMatches) {
+      return NextResponse.json({
+        configured: true,
+        results: [],
+        metadata,
+        pagination: emptyPagination(page, pageSize),
+      });
+    }
+
+    const documentResponse = await paperlessFetch(
+      `/api/documents/?${params}`,
+      { cache: "no-store" },
+    );
+    if (!documentResponse.ok) {
+      return NextResponse.json(
+        { error: "Could not load Paperless documents" },
+        { status: documentResponse.status },
+      );
+    }
+    const documentPayload =
+      await readCollection<PaperlessDocumentRecord>(documentResponse);
+    const accents = ["blue", "ochre", "sage", "plum", "slate"] as const;
+    const results = documentPayload.results.map((document) => {
       const tags = document.tags
         .map((id) => tagNames.get(id))
         .filter((name): name is string => Boolean(name));
@@ -127,7 +167,8 @@ export async function GET(request: NextRequest) {
         title: document.title,
         correspondent:
           correspondentNames.get(document.correspondent ?? -1) ?? "Unassigned",
-        documentType: typeNames.get(document.document_type ?? -1) ?? "Document",
+        documentType:
+          typeNames.get(document.document_type ?? -1) ?? "Document",
         tags,
         created: formatDate(document.created),
         added: formatDate(document.added),
@@ -139,25 +180,30 @@ export async function GET(request: NextRequest) {
         status: tags.some((tag) => tag.toLowerCase() === "needs review")
           ? "review"
           : "ready",
-        accent: accents[index % accents.length],
+        accent: accents[document.id % accents.length],
       };
-    },
-  );
+    });
 
-  const count = Number(documentPayload.count ?? results.length);
-  return NextResponse.json({
-    configured: true,
-    results,
-    metadata,
-    pagination: {
-      count,
-      page,
-      pageSize,
-      totalPages: Math.max(1, Math.ceil(count / pageSize)),
-      hasNext: Boolean(documentPayload.next),
-      hasPrevious: Boolean(documentPayload.previous),
-    },
-  });
+    const count = Number(documentPayload.count ?? results.length);
+    return NextResponse.json({
+      configured: true,
+      results,
+      metadata,
+      pagination: {
+        count,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(count / pageSize)),
+        hasNext: Boolean(documentPayload.next),
+        hasPrevious: Boolean(documentPayload.previous),
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Paperless did not respond in time" },
+      { status: 504 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -167,35 +213,61 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   }
-
-  const config = configuration();
-  if (!config) {
+  if (!paperlessConfiguration()) {
     return NextResponse.json(
       { error: "Paperless is not configured" },
       { status: 503 },
     );
   }
 
-  const formData = await request.formData();
-  const document = formData.get("document");
-  if (!(document instanceof File) || document.size === 0) {
+  const configuredMaximum = Number(
+    process.env.PAPERLESS_MAX_UPLOAD_SIZE_MB ?? 100,
+  );
+  const maximumBytes =
+    (Number.isFinite(configuredMaximum) && configuredMaximum > 0
+      ? configuredMaximum
+      : 100) *
+    1024 *
+    1024;
+  const declaredSize = Number(request.headers.get("content-length") ?? 0);
+  if (declaredSize > maximumBytes) {
     return NextResponse.json(
-      { error: "A non-empty document file is required" },
-      { status: 400 },
+      { error: "The uploaded document is too large" },
+      { status: 413 },
     );
   }
 
-  const response = await fetch(`${config.url}/api/documents/post_document/`, {
-    method: "POST",
-    headers: { Authorization: `Token ${config.token}` },
-    body: formData,
-  });
+  try {
+    const formData = await request.formData();
+    const document = formData.get("document");
+    if (!(document instanceof File) || document.size === 0) {
+      return NextResponse.json(
+        { error: "A non-empty document file is required" },
+        { status: 400 },
+      );
+    }
+    if (document.size > maximumBytes) {
+      return NextResponse.json(
+        { error: "The uploaded document is too large" },
+        { status: 413 },
+      );
+    }
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: {
-      "Content-Type":
-        response.headers.get("Content-Type") ?? "application/json",
-    },
-  });
+    const response = await paperlessFetch("/api/documents/post_document/", {
+      method: "POST",
+      body: formData,
+    });
+    return new NextResponse(response.body, {
+      status: response.status,
+      headers: {
+        "Content-Type":
+          response.headers.get("Content-Type") ?? "application/json",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Paperless did not respond in time" },
+      { status: 504 },
+    );
+  }
 }
