@@ -1740,9 +1740,45 @@ select {
 }
 
 .document-list.is-grid .document-row {
-  min-height: 145px;
+  min-width: 0;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px;
   border: 1px solid var(--line-soft);
   border-radius: 7px;
+}
+
+.document-list.is-grid .document-thumbnail {
+  align-self: center;
+  flex: 0 0 82px;
+}
+
+.document-list.is-grid .document-row-content,
+.document-list.is-grid .document-row-topline {
+  width: 100%;
+}
+
+.document-list.is-grid .document-row-topline strong {
+  flex: 1;
+}
+
+.document-list.is-grid .document-meta,
+.document-list.is-grid .mini-tags {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.document-list.is-grid .document-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.document-list.is-grid .mini-tags span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .more-menu {
