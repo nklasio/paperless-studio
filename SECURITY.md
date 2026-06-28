@@ -10,9 +10,9 @@ to the latest commit on the default branch.
 Please do not open a public issue for a suspected vulnerability.
 
 Use GitHub's private vulnerability reporting feature for this repository. If
-that feature is unavailable, contact a maintainer privately through their
-public GitHub profile and include only enough information to establish a safe
-reporting channel.
+that feature is unavailable, contact a maintainer privately through their public
+GitHub profile and include only enough information to establish a safe reporting
+channel.
 
 Please include:
 

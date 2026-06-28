@@ -16,10 +16,4 @@ export type PaperlessDocument = {
 };
 
 export type NavView =
-  | "inbox"
-  | "recent"
-  | "review"
-  | "all"
-  | "finance"
-  | "personal"
-  | "work";
+  "inbox" | "recent" | "review" | "all" | "finance" | "personal" | "work";

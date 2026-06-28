@@ -3,8 +3,7 @@
 Thanks for helping make Paperless Studio better. The project aims to stay easy
 to understand, pleasant to use, and straightforward to extend.
 
-By participating, you agree to follow the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Before you start
 
@@ -52,8 +51,7 @@ empty result, and both desktop and mobile layouts.
 
 ## Commits and pull requests
 
-Use [Conventional Commits](https://www.conventionalcommits.org/) where
-possible:
+Use [Conventional Commits](https://www.conventionalcommits.org/) where possible:
 
 ```text
 feat: add correspondent search

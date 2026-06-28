@@ -23,8 +23,8 @@ navigation, search, pagination, selection, preview state, metadata editing,
 upload, and review actions.
 
 This is intentionally a single obvious entry point today. Extract a component
-when it has a stable responsibility or meaningful independent behavior, not
-only to reduce line count.
+when it has a stable responsibility or meaningful independent behavior, not only
+to reduce line count.
 
 `app/globals.css` contains the visual system and responsive layouts.
 `components/ui` contains small reusable primitives.
@@ -80,11 +80,11 @@ reload.
 - The native browser PDF viewer keeps the bundle small but offers a limited
   control API.
 
-These are useful contribution areas, but changes should preserve a simple
-local setup and keep credentials server-side.
+These are useful contribution areas, but changes should preserve a simple local
+setup and keep credentials server-side.
 
 ## Releases
 
 Pushing a semantic version tag triggers the container release workflow. See
-[`RELEASING.md`](RELEASING.md) for the supported tag format, image aliases,
-and architectures.
+[`RELEASING.md`](RELEASING.md) for the supported tag format, image aliases, and
+architectures.

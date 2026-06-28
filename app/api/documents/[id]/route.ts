@@ -26,10 +26,7 @@ export async function PATCH(
 
   const { id } = await params;
   if (!validPaperlessId(id)) {
-    return NextResponse.json(
-      { error: "Invalid document ID" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid document ID" }, { status: 400 });
   }
 
   let patch: {
@@ -42,10 +39,7 @@ export async function PATCH(
   try {
     patch = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const metadataResponses = await Promise.all([

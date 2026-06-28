@@ -51,11 +51,14 @@ body:
     id: context
     attributes:
       label: Additional context
-      description: Add sanitized logs or screenshots. Do not include document contents unless they are synthetic.
+      description:
+        Add sanitized logs or screenshots. Do not include document contents
+        unless they are synthetic.
   - type: checkboxes
     id: privacy
     attributes:
       label: Privacy check
       options:
-        - label: I removed API tokens, personal data, and private document contents.
+        - label:
+            I removed API tokens, personal data, and private document contents.
           required: true

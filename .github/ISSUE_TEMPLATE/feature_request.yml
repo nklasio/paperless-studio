@@ -22,7 +22,8 @@ body:
     id: paperless
     attributes:
       label: Paperless integration
-      description: Note relevant paperless-ngx API behavior, permissions, or configuration.
+      description:
+        Note relevant paperless-ngx API behavior, permissions, or configuration.
   - type: textarea
     id: alternatives
     attributes:

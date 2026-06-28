@@ -4,13 +4,11 @@
 
 Paperless Studio is a focused, desktop-like web interface for
 [paperless-ngx](https://github.com/paperless-ngx/paperless-ngx). It keeps
-Paperless responsible for OCR, storage, consumption, permissions, and
-archiving while providing a fast workspace for finding and reviewing
-documents.
+Paperless responsible for OCR, storage, consumption, permissions, and archiving
+while providing a fast workspace for finding and reviewing documents.
 
-> [!IMPORTANT]
-> Paperless Studio is an independent community project and is not affiliated
-> with or endorsed by the paperless-ngx project.
+> [!IMPORTANT] Paperless Studio is an independent community project and is not
+> affiliated with or endorsed by the paperless-ngx project.
 
 ## Features
 
@@ -23,14 +21,14 @@ documents.
 - Saved views, responsive navigation, and keyboard shortcuts
 - Server-side API proxying so the Paperless token is not sent to the browser
 
-The app falls back to representative demo data when Paperless is not
-configured, which makes UI work possible without a running Paperless server.
+The app falls back to representative demo data when Paperless is not configured,
+which makes UI work possible without a running Paperless server.
 
 ## Quick start
 
 Requirements:
 
-- Node.js 20.9 or newer
+- Node.js 20.19 or newer
 - npm
 - A paperless-ngx instance and API token for live data
 
@@ -78,11 +76,11 @@ PAPERLESS_STUDIO_TOKEN=replace-with-your-api-token
 ```
 
 The snippet assumes the Paperless service is named `webserver`, as in the
-standard paperless-ngx Compose setup. Change both references if your service
-has a different name. Compose puts both services on the same default network,
-so Paperless does not need to be exposed on a host port. Studio binds to the
-host's loopback interface by default; use an authenticated reverse proxy on
-the Compose network for remote access.
+standard paperless-ngx Compose setup. Change both references if your service has
+a different name. Compose puts both services on the same default network, so
+Paperless does not need to be exposed on a host port. Studio binds to the host's
+loopback interface by default; use an authenticated reverse proxy on the Compose
+network for remote access.
 
 Build and start only the new service:
 
@@ -114,12 +112,12 @@ tagging and image-version policy.
 
 ## Configuration
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `PAPERLESS_URL` | For live data | Base URL reachable by the Studio server, without a trailing slash |
-| `PAPERLESS_TOKEN` | For live data | Paperless API token; kept on the server |
-| `PAPERLESS_REQUEST_TIMEOUT_MS` | No | Upstream request timeout in milliseconds; defaults to `15000` |
-| `PAPERLESS_MAX_UPLOAD_SIZE_MB` | No | Maximum accepted upload size in MiB; defaults to `100` |
+| Variable                       | Required      | Description                                                       |
+| ------------------------------ | ------------- | ----------------------------------------------------------------- |
+| `PAPERLESS_URL`                | For live data | Base URL reachable by the Studio server, without a trailing slash |
+| `PAPERLESS_TOKEN`              | For live data | Paperless API token; kept on the server                           |
+| `PAPERLESS_REQUEST_TIMEOUT_MS` | No            | Upstream request timeout in milliseconds; defaults to `15000`     |
+| `PAPERLESS_MAX_UPLOAD_SIZE_MB` | No            | Maximum accepted upload size in MiB; defaults to `100`            |
 
 No client-side environment variables are required.
 
@@ -127,9 +125,9 @@ No client-side environment variables are required.
 
 Paperless Studio currently has no authentication layer of its own. Every user
 who can reach it acts through the configured Paperless token and receives that
-token's permissions. Do not expose the app directly to the public internet.
-Put it behind an authenticated reverse proxy or another trusted access layer,
-and use a dedicated Paperless account with the least privileges you need.
+token's permissions. Do not expose the app directly to the public internet. Put
+it behind an authenticated reverse proxy or another trusted access layer, and
+use a dedicated Paperless account with the least privileges you need.
 
 See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
@@ -138,6 +136,9 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 ```bash
 npm install          # install the locked dependency set
 npm run dev          # start the development server
+npm run lint         # run Next.js, React, and accessibility lint rules
+npm test             # run the unit test suite once
+npm run format:check # verify repository formatting
 npm run typecheck    # run TypeScript without emitting files
 npm run build        # create a production build
 npm run check        # run all repository checks
@@ -150,8 +151,8 @@ Paperless integration is isolated in server-side route handlers under
 [`lib/mock-data.ts`](lib/mock-data.ts) when no Paperless connection is
 configured.
 
-Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before making a larger
-change. It documents the data flow, extension points, and current tradeoffs.
+Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before making a larger change.
+It documents the data flow, extension points, and current tradeoffs.
 
 ## Contributing
 
@@ -160,14 +161,14 @@ proposals, accessibility improvements, Paperless compatibility fixes, and UI
 polish are all welcome.
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-The issue templates are designed to capture enough Paperless and browser
-context to reproduce problems quickly. Participation is covered by the
+The issue templates are designed to capture enough Paperless and browser context
+to reproduce problems quickly. Participation is covered by the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Project status
 
-Paperless Studio is early-stage software. Core document workflows work, but
-the API layer and component boundaries are still intentionally small and
+Paperless Studio is early-stage software. Core document workflows work, but the
+API layer and component boundaries are still intentionally small and
 approachable. Expect iteration, and please open an issue before investing in a
 large architectural change.
 

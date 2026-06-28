@@ -1,6 +1,9 @@
-import type { NextRequest } from "next/server";
+type OriginRequest = {
+  headers: Pick<Headers, "get">;
+  nextUrl: { origin: string };
+};
 
-export function isSameOriginRequest(request: NextRequest) {
+export function isSameOriginRequest(request: OriginRequest) {
   const origin = request.headers.get("origin");
   if (!origin) return true;
 

@@ -23,7 +23,9 @@ const savedViewTags: Record<string, string[]> = {
 };
 
 function matchingIds(items: PaperlessMetadataItem[], names: string[]) {
-  const normalizedNames = new Set(names.map((name) => name.toLocaleLowerCase()));
+  const normalizedNames = new Set(
+    names.map((name) => name.toLocaleLowerCase()),
+  );
   return items
     .filter((item) => normalizedNames.has(item.name.toLocaleLowerCase()))
     .map((item) => item.id);
@@ -58,7 +60,10 @@ export function buildDocumentQuery(
   );
   if (requiredTagNames.length) {
     const ids = matchingIds(tags, requiredTagNames);
-    if (ids.length !== new Set(requiredTagNames.map((name) => name.toLocaleLowerCase())).size) {
+    if (
+      ids.length !==
+      new Set(requiredTagNames.map((name) => name.toLocaleLowerCase())).size
+    ) {
       return { params, hasMatches: false };
     }
     params.set("tags__id__all", ids.join(","));

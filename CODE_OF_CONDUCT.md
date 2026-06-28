@@ -2,8 +2,8 @@
 
 ## Our commitment
 
-We want Paperless Studio to be a welcoming, useful project for contributors
-with different backgrounds, identities, experience levels, and perspectives.
+We want Paperless Studio to be a welcoming, useful project for contributors with
+different backgrounds, identities, experience levels, and perspectives.
 
 ## Expected behavior
 
@@ -24,16 +24,16 @@ with different backgrounds, identities, experience levels, and perspectives.
 
 ## Scope
 
-This code applies in repository issues, pull requests, reviews, discussions,
-and other spaces where someone represents the project.
+This code applies in repository issues, pull requests, reviews, discussions, and
+other spaces where someone represents the project.
 
 ## Enforcement
 
 Do not report conduct incidents in a public issue. Contact a maintainer
 privately through their public GitHub profile with a concise account and
 relevant links. Maintainers may edit or remove content, close discussions,
-temporarily restrict participation, or permanently ban participants when
-needed to protect the community.
+temporarily restrict participation, or permanently ban participants when needed
+to protect the community.
 
-Reports will be handled as privately as reasonably possible. Retaliation
-against someone who reports a concern is not acceptable.
+Reports will be handled as privately as reasonably possible. Retaliation against
+someone who reports a concern is not acceptable.

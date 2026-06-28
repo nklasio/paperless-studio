@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  paperlessConfiguration,
-  paperlessFetch,
-} from "@/lib/paperless-api";
+import { paperlessConfiguration, paperlessFetch } from "@/lib/paperless-api";
 import {
   buildDocumentQuery,
   type PaperlessMetadataItem,
@@ -145,10 +142,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const documentResponse = await paperlessFetch(
-      `/api/documents/?${params}`,
-      { cache: "no-store" },
-    );
+    const documentResponse = await paperlessFetch(`/api/documents/?${params}`, {
+      cache: "no-store",
+    });
     if (!documentResponse.ok) {
       return NextResponse.json(
         { error: "Could not load Paperless documents" },
@@ -167,8 +163,7 @@ export async function GET(request: NextRequest) {
         title: document.title,
         correspondent:
           correspondentNames.get(document.correspondent ?? -1) ?? "Unassigned",
-        documentType:
-          typeNames.get(document.document_type ?? -1) ?? "Document",
+        documentType: typeNames.get(document.document_type ?? -1) ?? "Document",
         tags,
         created: formatDate(document.created),
         added: formatDate(document.added),

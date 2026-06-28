@@ -18,10 +18,7 @@ export async function GET(
 
   const { id } = await params;
   if (!validPaperlessId(id)) {
-    return NextResponse.json(
-      { error: "Invalid document ID" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid document ID" }, { status: 400 });
   }
 
   const response = await paperlessFetch(`/api/documents/${id}/preview/`, {

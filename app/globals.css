@@ -17,12 +17,14 @@
   --tag-sage: oklch(0.67 0.08 154);
   --tag-plum: oklch(0.62 0.1 323);
   --tag-ochre: oklch(0.73 0.11 75);
-  --shadow-soft: 0 1px 2px oklch(0.25 0.02 258 / 5%),
-    0 8px 24px oklch(0.25 0.02 258 / 6%);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Helvetica Neue", sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-    "Helvetica Neue", sans-serif;
+  --shadow-soft:
+    0 1px 2px oklch(0.25 0.02 258 / 5%), 0 8px 24px oklch(0.25 0.02 258 / 6%);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue",
+    sans-serif;
 }
 
 * {
@@ -160,7 +162,9 @@ button:disabled {
   box-shadow: 0 1px 1px oklch(0.3 0.1 257 / 20%);
   font-size: 12px;
   font-weight: 620;
-  transition: transform 150ms ease, background 150ms ease;
+  transition:
+    transform 150ms ease,
+    background 150ms ease;
 }
 
 .upload-button:hover {
@@ -198,7 +202,9 @@ button:disabled {
   color: var(--ink-soft);
   text-align: left;
   font-size: 12px;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .nav-item:hover {
@@ -364,7 +370,9 @@ button:disabled {
   border-radius: 7px;
   background: oklch(0.975 0.006 258);
   color: var(--ink-faint);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .search-wrap:focus-within {
@@ -460,7 +468,9 @@ button:disabled {
   border-radius: 6px;
   background: transparent;
   color: var(--ink-soft);
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .icon-button:hover {
@@ -834,7 +844,9 @@ button:disabled {
   border-radius: 7px;
   font-size: 11px;
   font-weight: 650;
-  transition: background 140ms ease, border-color 140ms ease,
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
     transform 140ms ease;
 }
 
@@ -915,7 +927,8 @@ button:disabled {
   aspect-ratio: 0.707;
   padding: 7.5% 8%;
   background: oklch(0.997 0.004 88);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 258 / 10%),
+  box-shadow:
+    0 1px 2px oklch(0.2 0.02 258 / 10%),
     0 18px 55px oklch(0.2 0.02 258 / 13%);
   color: oklch(0.25 0.015 258);
   font-family: var(--font-sans);
@@ -927,7 +940,8 @@ button:disabled {
   height: min(78vh, 820px);
   border: 0;
   background: oklch(0.997 0.004 88);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 258 / 10%),
+  box-shadow:
+    0 1px 2px oklch(0.2 0.02 258 / 10%),
     0 18px 55px oklch(0.2 0.02 258 / 13%);
 }
 
@@ -1568,7 +1582,9 @@ button:disabled {
   border-radius: 9px;
   background: oklch(0.975 0.012 257);
   text-align: center;
-  transition: border-color 150ms ease, background 150ms ease,
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
     transform 150ms ease;
   cursor: pointer;
 }

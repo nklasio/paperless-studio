@@ -13,7 +13,6 @@ import {
   Download,
   FileCheck2,
   FileText,
-  Folder,
   Grid2X2,
   Inbox,
   LayoutList,
@@ -24,7 +23,6 @@ import {
   Plus,
   RotateCw,
   Search,
-  Settings2,
   Share2,
   SlidersHorizontal,
   Sparkles,
@@ -34,6 +32,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toDateInputValue } from "@/lib/dates";
 import {
   availableTags,
   correspondents,
@@ -110,8 +109,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [correspondentOptions, setCorrespondentOptions] =
     useState(correspondents);
-  const [documentTypeOptions, setDocumentTypeOptions] =
-    useState(documentTypes);
+  const [documentTypeOptions, setDocumentTypeOptions] = useState(documentTypes);
   const [tagOptions, setTagOptions] = useState(availableTags);
   const [selectedId, setSelectedId] = useState(
     initialDocumentId ?? initialDocuments[0].id,
@@ -253,54 +251,55 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         }
         return response.json();
       })
-      .then((payload: {
-        configured?: boolean;
-        results?: PaperlessDocument[];
-        pagination?: {
-          count: number;
-          page: number;
-          pageSize: number;
-          totalPages: number;
-          hasNext: boolean;
-          hasPrevious: boolean;
-        };
-        metadata?: {
-          correspondents?: string[];
-          documentTypes?: string[];
-          tags?: string[];
-        };
-      }) => {
-        if (!payload.configured || !payload.results) {
+      .then(
+        (payload: {
+          configured?: boolean;
+          results?: PaperlessDocument[];
+          pagination?: {
+            count: number;
+            page: number;
+            pageSize: number;
+            totalPages: number;
+            hasNext: boolean;
+            hasPrevious: boolean;
+          };
+          metadata?: {
+            correspondents?: string[];
+            documentTypes?: string[];
+            tags?: string[];
+          };
+        }) => {
+          if (!payload.configured || !payload.results) {
+            setConnectionError(null);
+            return;
+          }
+          setPaperlessConnected(true);
           setConnectionError(null);
-          return;
-        }
-        setPaperlessConnected(true);
-        setConnectionError(null);
-        setDocuments(payload.results);
-        if (payload.pagination) setPagination(payload.pagination);
-        if (payload.metadata?.correspondents?.length) {
-          setCorrespondentOptions(payload.metadata.correspondents);
-        }
-        if (payload.metadata?.documentTypes?.length) {
-          setDocumentTypeOptions(payload.metadata.documentTypes);
-        }
-        if (payload.metadata?.tags?.length) {
-          setTagOptions(payload.metadata.tags);
-        }
-        const preferred = initialDocumentId
-          ? (payload.results.find(
-              (document) => document.id === initialDocumentId,
-            ) ?? payload.results[0])
-          : (payload.results.find(
-              (document) => document.id === selectedId,
-            ) ?? payload.results[0]);
-        if (preferred) {
-          setSelectedId(preferred.id);
-          setSelectedDocument(preferred);
-        }
-      })
+          setDocuments(payload.results);
+          if (payload.pagination) setPagination(payload.pagination);
+          if (payload.metadata?.correspondents?.length) {
+            setCorrespondentOptions(payload.metadata.correspondents);
+          }
+          if (payload.metadata?.documentTypes?.length) {
+            setDocumentTypeOptions(payload.metadata.documentTypes);
+          }
+          if (payload.metadata?.tags?.length) {
+            setTagOptions(payload.metadata.tags);
+          }
+          const preferred = initialDocumentId
+            ? (payload.results.find(
+                (document) => document.id === initialDocumentId,
+              ) ?? payload.results[0])
+            : payload.results[0];
+          if (preferred) {
+            setSelectedId(preferred.id);
+            setSelectedDocument(preferred);
+          }
+        },
+      )
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         setConnectionError(
           "Couldn’t refresh Paperless. Check the connection and try again.",
         );
@@ -337,24 +336,24 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         }
         return response.json();
       })
-      .then((payload: {
-        configured?: boolean;
-        results?: PaperlessDocument[];
-      }) => {
-        const document = payload.results?.[0];
-        if (!document) {
-          if (payload.configured) {
-            setToast("Document not found");
-            setMobileDetailOpen(false);
-            window.history.replaceState(null, "", "/");
+      .then(
+        (payload: { configured?: boolean; results?: PaperlessDocument[] }) => {
+          const document = payload.results?.[0];
+          if (!document) {
+            if (payload.configured) {
+              setToast("Document not found");
+              setMobileDetailOpen(false);
+              window.history.replaceState(null, "", "/");
+            }
+            return;
           }
-          return;
-        }
-        setSelectedId(document.id);
-        setSelectedDocument(document);
-      })
+          setSelectedId(document.id);
+          setSelectedDocument(document);
+        },
+      )
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
       });
 
     return () => controller.abort();
@@ -467,7 +466,8 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         await navigator.share({ title: selected.title, url });
         return;
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
       }
     }
     try {
@@ -526,7 +526,9 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
     const saved = await persistDocument({ status: "ready" });
     if (!saved) return;
     setToast("Document moved out of review");
-    const next = visibleDocuments.find((document) => document.id !== selected.id);
+    const next = visibleDocuments.find(
+      (document) => document.id !== selected.id,
+    );
     if (next) chooseDocument(next.id);
   }
 
@@ -563,12 +565,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   }
 
   return (
-    <main
-      className={cn(
-        "app-shell",
-        mobileDetailOpen && "has-mobile-detail",
-      )}
-    >
+    <main className={cn("app-shell", mobileDetailOpen && "has-mobile-detail")}>
       <aside
         id="primary-navigation"
         className={cn("sidebar", mobileNavOpen && "sidebar--open")}
@@ -608,7 +605,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             return (
               <button
                 key={item.id}
-                className={cn("nav-item", activeView === item.id && "is-active")}
+                className={cn(
+                  "nav-item",
+                  activeView === item.id && "is-active",
+                )}
                 aria-current={activeView === item.id ? "page" : undefined}
                 onClick={() => {
                   setActiveView(item.id);
@@ -654,7 +654,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                   <option key={tag}>{tag}</option>
                 ))}
               </select>
-              <button onClick={saveCustomView} disabled={!newViewName || !newViewTag}>
+              <button
+                onClick={saveCustomView}
+                disabled={!newViewName || !newViewTag}
+              >
                 Save view
               </button>
             </div>
@@ -697,59 +700,68 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
 
         <div className="sidebar-footer">
           <div className="sidebar-popover-wrap">
-          <button
-            className="nav-item"
-            aria-expanded={helpOpen}
-            aria-controls="help-popover"
-            onClick={() => setHelpOpen((current) => !current)}
-          >
-            <CircleHelp size={17} />
-            <span>Help & shortcuts</span>
-          </button>
-          {helpOpen ? (
-            <div id="help-popover" className="sidebar-popover">
-              <strong>Shortcuts</strong>
-              <span><kbd>⌘ K</kbd> Search</span>
-              <span><kbd>⌘ U</kbd> Upload</span>
-              <span><kbd>Esc</kbd> Close menus</span>
-            </div>
-          ) : null}
+            <button
+              className="nav-item"
+              aria-expanded={helpOpen}
+              aria-controls="help-popover"
+              onClick={() => setHelpOpen((current) => !current)}
+            >
+              <CircleHelp size={17} />
+              <span>Help & shortcuts</span>
+            </button>
+            {helpOpen ? (
+              <div id="help-popover" className="sidebar-popover">
+                <strong>Shortcuts</strong>
+                <span>
+                  <kbd>⌘ K</kbd> Search
+                </span>
+                <span>
+                  <kbd>⌘ U</kbd> Upload
+                </span>
+                <span>
+                  <kbd>Esc</kbd> Close menus
+                </span>
+              </div>
+            ) : null}
           </div>
           <div className="sidebar-popover-wrap">
-          <button
-            className="account-row"
-            aria-expanded={accountOpen}
-            aria-controls="account-popover"
-            onClick={() => setAccountOpen((current) => !current)}
-          >
-            <span className="avatar">P</span>
-            <span>
-              <strong>Paperless</strong>
-              <small>
-                {paperlessConnected ? "Connected workspace" : "Local preview"}
-              </small>
-            </span>
-            <MoreHorizontal size={16} />
-          </button>
-          {accountOpen ? (
-            <div id="account-popover" className="sidebar-popover account-popover">
-              <strong>Paperless connection</strong>
-              <span className="connection-state">
-                <i
-                  className={cn(
-                    !paperlessConnected && "is-offline",
-                    connectionError && "is-error",
-                  )}
-                />
-                {paperlessConnected
-                  ? "Connected"
-                  : connectionError
-                    ? "Connection issue"
-                    : "Demo mode"}
+            <button
+              className="account-row"
+              aria-expanded={accountOpen}
+              aria-controls="account-popover"
+              onClick={() => setAccountOpen((current) => !current)}
+            >
+              <span className="avatar">P</span>
+              <span>
+                <strong>Paperless</strong>
+                <small>
+                  {paperlessConnected ? "Connected workspace" : "Local preview"}
+                </small>
               </span>
-              <small>API credentials stay on the server.</small>
-            </div>
-          ) : null}
+              <MoreHorizontal size={16} />
+            </button>
+            {accountOpen ? (
+              <div
+                id="account-popover"
+                className="sidebar-popover account-popover"
+              >
+                <strong>Paperless connection</strong>
+                <span className="connection-state">
+                  <i
+                    className={cn(
+                      !paperlessConnected && "is-offline",
+                      connectionError && "is-error",
+                    )}
+                  />
+                  {paperlessConnected
+                    ? "Connected"
+                    : connectionError
+                      ? "Connection issue"
+                      : "Demo mode"}
+                </span>
+                <small>API credentials stay on the server.</small>
+              </div>
+            ) : null}
           </div>
         </div>
       </aside>
@@ -762,7 +774,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
         />
       ) : null}
 
-      <section className="document-column" inert={uploadOpen ? true : undefined}>
+      <section
+        className="document-column"
+        inert={uploadOpen ? true : undefined}
+      >
         <header className="list-header">
           <div className="mobile-brand">
             <button
@@ -810,23 +825,69 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               {paperlessConnected ? pagination.count : visibleDocuments.length}
             </span>
             <div className="toolbar-popover-wrap">
-            <button
-              className={cn("icon-button", filterOpen && "is-pressed")}
-              aria-label="Filter documents"
-              aria-expanded={filterOpen}
-              aria-controls="document-filters"
-              onClick={() => setFilterOpen((current) => !current)}
-            >
-              <SlidersHorizontal size={16} />
-            </button>
-            {filterOpen ? (
-              <div id="document-filters" className="filter-popover">
-                <div><strong>Filter documents</strong><button onClick={() => { setFilterCorrespondent(""); setFilterType(""); setFilterTag(""); }}>Clear</button></div>
-                <label>Correspondent<select value={filterCorrespondent} onChange={(event) => setFilterCorrespondent(event.target.value)}><option value="">Any</option>{correspondentOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-                <label>Type<select value={filterType} onChange={(event) => setFilterType(event.target.value)}><option value="">Any</option>{documentTypeOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-                <label>Tag<select value={filterTag} onChange={(event) => setFilterTag(event.target.value)}><option value="">Any</option>{tagOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-              </div>
-            ) : null}
+              <button
+                className={cn("icon-button", filterOpen && "is-pressed")}
+                aria-label="Filter documents"
+                aria-expanded={filterOpen}
+                aria-controls="document-filters"
+                onClick={() => setFilterOpen((current) => !current)}
+              >
+                <SlidersHorizontal size={16} />
+              </button>
+              {filterOpen ? (
+                <div id="document-filters" className="filter-popover">
+                  <div>
+                    <strong>Filter documents</strong>
+                    <button
+                      onClick={() => {
+                        setFilterCorrespondent("");
+                        setFilterType("");
+                        setFilterTag("");
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <label>
+                    Correspondent
+                    <select
+                      value={filterCorrespondent}
+                      onChange={(event) =>
+                        setFilterCorrespondent(event.target.value)
+                      }
+                    >
+                      <option value="">Any</option>
+                      {correspondentOptions.map((item) => (
+                        <option key={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Type
+                    <select
+                      value={filterType}
+                      onChange={(event) => setFilterType(event.target.value)}
+                    >
+                      <option value="">Any</option>
+                      {documentTypeOptions.map((item) => (
+                        <option key={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Tag
+                    <select
+                      value={filterTag}
+                      onChange={(event) => setFilterTag(event.target.value)}
+                    >
+                      <option value="">Any</option>
+                      {tagOptions.map((item) => (
+                        <option key={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              ) : null}
             </div>
             <button
               className="icon-button is-pressed"
@@ -836,10 +897,14 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                   : "Switch to list view"
               }
               onClick={() =>
-                setViewMode((current) => current === "list" ? "grid" : "list")
+                setViewMode((current) => (current === "list" ? "grid" : "list"))
               }
             >
-              {viewMode === "list" ? <Grid2X2 size={16} /> : <LayoutList size={16} />}
+              {viewMode === "list" ? (
+                <Grid2X2 size={16} />
+              ) : (
+                <LayoutList size={16} />
+              )}
             </button>
           </div>
         </div>
@@ -970,7 +1035,10 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             <button
               className="icon-button"
               aria-label="Next document"
-              disabled={selectedIndex < 0 || selectedIndex >= visibleDocuments.length - 1}
+              disabled={
+                selectedIndex < 0 ||
+                selectedIndex >= visibleDocuments.length - 1
+              }
               onClick={() => moveDocument(1)}
             >
               <ChevronRight size={17} />
@@ -987,26 +1055,43 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
             >
               <Download size={17} />
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Share document" onClick={shareDocument}>
-              <Share2 size={17} />
-            </Button>
-            <div className="more-menu-wrap">
             <Button
               variant="ghost"
               size="icon"
-              aria-label="More options"
-              aria-expanded={moreOpen}
-              aria-controls="document-more-menu"
-              onClick={() => setMoreOpen((current) => !current)}
+              aria-label="Share document"
+              onClick={shareDocument}
             >
-              <MoreHorizontal size={18} />
+              <Share2 size={17} />
             </Button>
-            {moreOpen ? (
-              <div id="document-more-menu" className="more-menu">
-                <button onClick={copyDocumentId}>Copy document ID</button>
-                <button onClick={() => { persistDocument({ status: selected.status === "review" ? "ready" : "review" }); setMoreOpen(false); }}>{selected.status === "review" ? "Mark reviewed" : "Return to review"}</button>
-              </div>
-            ) : null}
+            <div className="more-menu-wrap">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="More options"
+                aria-expanded={moreOpen}
+                aria-controls="document-more-menu"
+                onClick={() => setMoreOpen((current) => !current)}
+              >
+                <MoreHorizontal size={18} />
+              </Button>
+              {moreOpen ? (
+                <div id="document-more-menu" className="more-menu">
+                  <button onClick={copyDocumentId}>Copy document ID</button>
+                  <button
+                    onClick={() => {
+                      persistDocument({
+                        status:
+                          selected.status === "review" ? "ready" : "review",
+                      });
+                      setMoreOpen(false);
+                    }}
+                  >
+                    {selected.status === "review"
+                      ? "Mark reviewed"
+                      : "Return to review"}
+                  </button>
+                </div>
+              ) : null}
             </div>
             <span className="toolbar-divider" />
             <Button
@@ -1049,15 +1134,23 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               <button
                 aria-label="Previous PDF page"
                 disabled={previewPage <= 1}
-                onClick={() => setPreviewPage((current) => Math.max(1, current - 1))}
+                onClick={() =>
+                  setPreviewPage((current) => Math.max(1, current - 1))
+                }
               >
                 <ChevronLeft size={14} />
               </button>
-              <span>{previewPage} / {selected.pages}</span>
+              <span>
+                {previewPage} / {selected.pages}
+              </span>
               <button
                 aria-label="Next PDF page"
                 disabled={previewPage >= selected.pages}
-                onClick={() => setPreviewPage((current) => Math.min(selected.pages, current + 1))}
+                onClick={() =>
+                  setPreviewPage((current) =>
+                    Math.min(selected.pages, current + 1),
+                  )
+                }
               >
                 <ChevronRight size={14} />
               </button>
@@ -1110,9 +1203,7 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
                   label="Document type"
                   value={selected.documentType}
                   options={documentTypeOptions}
-                  onChange={(value) =>
-                    persistDocument({ documentType: value })
-                  }
+                  onChange={(value) => persistDocument({ documentType: value })}
                 />
                 <div className="metadata-row">
                   <span className="metadata-label">Created</span>
@@ -1260,7 +1351,9 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
               <span className="drop-icon">
                 <Upload size={21} />
               </span>
-              <strong>{uploading ? "Sending to Paperless…" : "Drop a file here"}</strong>
+              <strong>
+                {uploading ? "Sending to Paperless…" : "Drop a file here"}
+              </strong>
               <p>or click to choose · PDF, image, or TIFF</p>
             </label>
             <p className="upload-note">
@@ -1282,18 +1375,6 @@ export function DocumentWorkspace({ initialDocumentId }: Props) {
   );
 }
 
-function toDateInputValue(value: string) {
-  const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-  if (isoDate) return isoDate;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function MetadataSelect({
   label,
   value,
@@ -1309,7 +1390,10 @@ function MetadataSelect({
     <label className="metadata-row">
       <span className="metadata-label">{label}</span>
       <span className="select-wrap">
-        <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        >
           {options.map((option) => (
             <option key={option}>{option}</option>
           ))}
@@ -1362,7 +1446,9 @@ function DocumentPaper({ document }: { document: PaperlessDocument }) {
       </div>
       <div className="paper-title-row">
         <div>
-          <small>{isInvoice ? "INVOICE" : document.documentType.toUpperCase()}</small>
+          <small>
+            {isInvoice ? "INVOICE" : document.documentType.toUpperCase()}
+          </small>
           <h3>{document.title.replace("Invoice · ", "")}</h3>
         </div>
         <dl>
@@ -1422,8 +1508,8 @@ function DocumentPaper({ document }: { document: PaperlessDocument }) {
       </div>
       <div className="paper-footer">
         <p>
-          Please transfer the amount within 14 days using document number
-          26-{document.id} as the reference.
+          Please transfer the amount within 14 days using document number 26-
+          {document.id} as the reference.
         </p>
         <div>
           <span>Nordlicht GmbH · Hamburg</span>
