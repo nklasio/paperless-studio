@@ -7,6 +7,7 @@ import type {
   CustomFieldValue,
   DocumentCustomField,
 } from "@/lib/types";
+import { studioDocumentPath } from "@/lib/paperless-links";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -202,12 +203,17 @@ function CustomFieldControl({
   };
 
   if (definition.dataType === "documentlink") {
-    const documentIds = Array.isArray(value) ? value : [];
+    const documentLinks = Array.isArray(value)
+      ? value.flatMap((documentId) => {
+          const href = studioDocumentPath(documentId);
+          return href ? [{ documentId, href }] : [];
+        })
+      : [];
     return (
       <div className="document-links" id={id}>
-        {documentIds.length
-          ? documentIds.map((documentId) => (
-              <a key={documentId} href={`/documents/${documentId}`}>
+        {documentLinks.length
+          ? documentLinks.map(({ documentId, href }) => (
+              <a key={documentId} href={href}>
                 Document {documentId}
                 <ExternalLink size={11} />
               </a>
