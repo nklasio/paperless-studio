@@ -4,8 +4,8 @@ import {
   AUTH_SESSION_SECONDS,
   authenticationState,
   createSessionToken,
-  credentialsAreValid,
 } from "@/lib/auth";
+import { authenticationProvider } from "@/lib/auth-provider";
 import { isSameOriginRequest } from "@/lib/request-security";
 
 const WINDOW_MS = 15 * 60 * 1000;
@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
   }
   const username = typeof body.username === "string" ? body.username : "";
   const password = typeof body.password === "string" ? body.password : "";
-  if (!(await credentialsAreValid(username, password, state.configuration))) {
+  const provider = authenticationProvider(state);
+  if (!provider || !(await provider.authenticate(username, password))) {
     recordFailure(key, now);
     return NextResponse.json(
       { error: "The username or password is incorrect." },
