@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useState } from "react";
 
 export function LoginForm({ returnPath }: { returnPath: string }) {
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +35,20 @@ export function LoginForm({ returnPath }: { returnPath: string }) {
     }
   }
 
+  function submitOnEnter(event: KeyboardEvent<HTMLFormElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.nativeEvent.isComposing ||
+      event.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
+  }
+
   return (
-    <form className="login-form" onSubmit={signIn}>
+    <form className="login-form" onSubmit={signIn} onKeyDown={submitOnEnter}>
       <label>
         <span>Username</span>
         <input

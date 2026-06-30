@@ -34,6 +34,11 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CustomFieldsEditor } from "@/components/custom-fields-editor";
+import {
+  UploadActivity,
+  useUploadActivities,
+} from "@/components/upload-activity";
 import { Button } from "@/components/ui/button";
 import { toDateInputValue } from "@/lib/dates";
 import {
@@ -42,8 +47,25 @@ import {
   documents as initialDocuments,
   documentTypes,
 } from "@/lib/mock-data";
-import type { NavView, PaperlessDocument } from "@/lib/types";
+import {
+  readSavedViews,
+  SAVED_VIEWS_KEY,
+  type SavedView,
+} from "@/lib/saved-views";
+import type {
+  ApiErrorResponse,
+  CustomFieldDefinition,
+  DocumentCustomField,
+  DocumentDetail,
+  NavView,
+  PaperlessDocument,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+  parseWorkspaceUrl,
+  workspaceHref,
+  type WorkspaceUrlState,
+} from "@/lib/workspace-url";
 import packageMetadata from "@/package.json";
 
 type Props = {
@@ -52,8 +74,6 @@ type Props = {
 };
 
 const PAGE_SIZE = 20;
-type CustomView = { id: string; label: string; tag: string };
-
 const viewLabels: Record<NavView, string> = {
   inbox: "Inbox",
   recent: "Recently added",
@@ -100,7 +120,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   );
   const [activeView, setActiveView] = useState<NavView>("recent");
   const [activeCustomView, setActiveCustomView] = useState<string | null>(null);
-  const [customViews, setCustomViews] = useState<CustomView[]>([]);
+  const [customViews, setCustomViews] = useState<SavedView[]>([]);
   const [newViewOpen, setNewViewOpen] = useState(false);
   const [newViewName, setNewViewName] = useState("");
   const [newViewTag, setNewViewTag] = useState("");
@@ -111,6 +131,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [helpOpen, setHelpOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [correspondentOptions, setCorrespondentOptions] =
     useState(correspondents);
@@ -145,13 +166,22 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewPage, setPreviewPage] = useState(1);
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<
+    CustomFieldDefinition[]
+  >([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [reviewTag, setReviewTag] = useState("Needs review");
+  const urlReadyRef = useRef(false);
+  const uploadActivity = useUploadActivities(() =>
+    setRefreshKey((current) => current + 1),
+  );
 
   const selected =
     documents.find((document) => document.id === selectedId) ??
     selectedDocument;
   const activeCustomTag = customViews.find(
     (view) => view.id === activeCustomView,
-  )?.tag;
+  )?.filters.tag;
 
   const visibleDocuments = useMemo(() => {
     if (paperlessConnected) return documents;
@@ -187,7 +217,9 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         (view) => view.id === activeCustomView,
       );
       const matchesCustom =
-        !customView || document.tags.includes(customView.tag);
+        !customView ||
+        !customView.filters.tag ||
+        document.tags.includes(customView.filters.tag);
       const matchesFilters =
         (!filterCorrespondent ||
           document.correspondent === filterCorrespondent) &&
@@ -213,6 +245,34 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   );
 
   useEffect(() => {
+    function restoreFromUrl() {
+      urlReadyRef.current = false;
+      const state = parseWorkspaceUrl(window.location.search);
+      setActiveView(state.view);
+      setQuery(state.query);
+      setDebouncedQuery(state.query);
+      setPage(state.page);
+      setFilterCorrespondent(state.correspondent);
+      setFilterType(state.documentType);
+      setFilterTag(state.tag);
+      const match = window.location.pathname.match(/^\/documents\/(\d+)$/);
+      if (match) {
+        setSelectedId(Number(match[1]));
+        setMobileDetailOpen(true);
+      } else {
+        setMobileDetailOpen(false);
+      }
+      window.requestAnimationFrame(() => {
+        urlReadyRef.current = true;
+      });
+    }
+    restoreFromUrl();
+    setCustomViews(readSavedViews(window.localStorage));
+    window.addEventListener("popstate", restoreFromUrl);
+    return () => window.removeEventListener("popstate", restoreFromUrl);
+  }, []);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedQuery(query.trim());
       setPage(1);
@@ -221,6 +281,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   }, [query]);
 
   useEffect(() => {
+    if (!urlReadyRef.current) return;
     setPage(1);
   }, [
     activeCustomView,
@@ -250,10 +311,8 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
       cache: "no-store",
       signal: controller.signal,
     })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Paperless request failed with ${response.status}`);
-        }
+      .then(async (response) => {
+        if (!response.ok) throw await response.json();
         return response.json();
       })
       .then(
@@ -272,6 +331,8 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
             correspondents?: string[];
             documentTypes?: string[];
             tags?: string[];
+            customFields?: CustomFieldDefinition[];
+            reviewTag?: string;
           };
         }) => {
           if (!payload.configured || !payload.results) {
@@ -291,6 +352,12 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
           if (payload.metadata?.tags?.length) {
             setTagOptions(payload.metadata.tags);
           }
+          if (payload.metadata?.customFields) {
+            setCustomFieldDefinitions(payload.metadata.customFields);
+          }
+          if (payload.metadata?.reviewTag) {
+            setReviewTag(payload.metadata.reviewTag);
+          }
           const preferred = initialDocumentId
             ? (payload.results.find(
                 (document) => document.id === initialDocumentId,
@@ -306,7 +373,10 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
         setConnectionError(
-          "Couldn’t refresh Paperless. Check the connection and try again.",
+          apiErrorMessage(
+            error,
+            "Couldn’t refresh Paperless. Check the connection and try again.",
+          ),
         );
       })
       .finally(() => {
@@ -325,6 +395,67 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
     initialDocumentId,
     page,
     refreshKey,
+  ]);
+
+  useEffect(() => {
+    if (!paperlessConnected || !selectedId) return;
+    const controller = new AbortController();
+    setLoadingDetail(true);
+    fetch(`/api/documents/${selectedId}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw await response.json();
+        return (await response.json()) as DocumentDetail & {
+          reviewTag?: string;
+        };
+      })
+      .then((detail) => {
+        setSelectedDocument(detail);
+        setDocuments((current) =>
+          current.map((document) =>
+            document.id === detail.id ? { ...document, ...detail } : document,
+          ),
+        );
+        setCustomFieldDefinitions(detail.customFieldDefinitions);
+        if (detail.reviewTag) setReviewTag(detail.reviewTag);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setToast(apiErrorMessage(error, "Couldn’t load document details."));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingDetail(false);
+      });
+    return () => controller.abort();
+  }, [paperlessConnected, selectedId]);
+
+  useEffect(() => {
+    if (!urlReadyRef.current) return;
+    const state: WorkspaceUrlState = {
+      view: activeView,
+      query: debouncedQuery,
+      page,
+      correspondent: filterCorrespondent,
+      documentType: filterType,
+      tag: filterTag,
+    };
+    window.history.replaceState(
+      null,
+      "",
+      workspaceHref(mobileDetailOpen ? selectedId : undefined, state),
+    );
+  }, [
+    activeView,
+    debouncedQuery,
+    filterCorrespondent,
+    filterTag,
+    filterType,
+    mobileDetailOpen,
+    page,
+    selectedId,
   ]);
 
   useEffect(() => {
@@ -456,22 +587,20 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
     setMoreOpen(false);
   }, [selectedId]);
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem("paperless-custom-views");
-    if (!stored) return;
-    try {
-      setCustomViews(JSON.parse(stored) as CustomView[]);
-    } catch {
-      window.localStorage.removeItem("paperless-custom-views");
-    }
-  }, []);
-
   function chooseDocument(id: number) {
     const document = documents.find((item) => item.id === id);
     setSelectedId(id);
     if (document) setSelectedDocument(document);
     setMobileDetailOpen(true);
-    window.history.pushState(null, "", `/documents/${id}`);
+    const state: WorkspaceUrlState = {
+      view: activeView,
+      query: debouncedQuery,
+      page,
+      correspondent: filterCorrespondent,
+      documentType: filterType,
+      tag: filterTag,
+    };
+    window.history.pushState(null, "", workspaceHref(id, state));
   }
 
   function moveDocument(direction: -1 | 1) {
@@ -484,16 +613,48 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
     const view = {
       id: `${Date.now()}`,
       label: newViewName.trim(),
-      tag: newViewTag,
+      view: activeView,
+      filters: {
+        correspondent: filterCorrespondent || undefined,
+        documentType: filterType || undefined,
+        tag: newViewTag || filterTag || undefined,
+      },
     };
     const next = [...customViews, view];
     setCustomViews(next);
-    window.localStorage.setItem("paperless-custom-views", JSON.stringify(next));
+    window.localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next));
     setNewViewName("");
     setNewViewTag("");
     setNewViewOpen(false);
     setActiveCustomView(view.id);
-    setActiveView("all");
+    applySavedView(view);
+  }
+
+  function applySavedView(view: SavedView) {
+    setActiveCustomView(view.id);
+    setActiveView(view.view);
+    setFilterCorrespondent(view.filters.correspondent ?? "");
+    setFilterType(view.filters.documentType ?? "");
+    setFilterTag(view.filters.tag ?? "");
+    setMobileNavOpen(false);
+  }
+
+  function renameSavedView(view: SavedView) {
+    const label = window.prompt("Rename saved view", view.label)?.trim();
+    if (!label || label === view.label) return;
+    const next = customViews.map((item) =>
+      item.id === view.id ? { ...item, label } : item,
+    );
+    setCustomViews(next);
+    window.localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next));
+  }
+
+  function deleteSavedView(view: SavedView) {
+    if (!window.confirm(`Delete “${view.label}”?`)) return;
+    const next = customViews.filter((item) => item.id !== view.id);
+    setCustomViews(next);
+    window.localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next));
+    if (activeCustomView === view.id) setActiveCustomView(null);
   }
 
   async function shareDocument() {
@@ -579,6 +740,10 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   }
 
   async function persistDocument(patch: Partial<PaperlessDocument>) {
+    if (!selected.canEdit) {
+      setToast("This document is read-only for the Paperless account.");
+      return false;
+    }
     const previous = selected;
     updateDocument(patch);
     if (!paperlessConnected) return true;
@@ -589,15 +754,17 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (!response.ok) {
-        throw new Error(`Document update failed with ${response.status}`);
-      }
+      if (!response.ok) throw await response.json();
       return true;
-    } catch {
+    } catch (error) {
       updateDocument(previous);
-      setToast("Couldn’t save the document changes");
+      setToast(apiErrorMessage(error, "Couldn’t save the document changes."));
       return false;
     }
+  }
+
+  async function persistCustomFields(fields: DocumentCustomField[]) {
+    return persistDocument({ customFields: fields });
   }
 
   async function markReviewed() {
@@ -631,11 +798,15 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         method: "POST",
         body,
       });
-      if (!response.ok) throw new Error("Upload failed");
-      setToast(`${file.name} sent to Paperless`);
-      setRefreshKey((current) => current + 1);
-    } catch {
-      setToast(`Could not upload ${file.name}`);
+      const payload = (await response.json()) as
+        | { taskId: string; fileName: string; status: "queued" }
+        | ApiErrorResponse;
+      if (!response.ok || !("taskId" in payload)) throw payload;
+      uploadActivity.add(payload.fileName, payload.taskId);
+      setActivityOpen(true);
+      setToast(`${file.name} queued in Paperless`);
+    } catch (error) {
+      setToast(apiErrorMessage(error, `Could not upload ${file.name}.`));
     } finally {
       setUploading(false);
       setUploadOpen(false);
@@ -695,7 +866,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                 }}
               >
                 <Icon size={17} />
-                <span>{item.label}</span>
+                <span>{item.id === "review" ? reviewTag : item.label}</span>
                 {count ? <em>{count}</em> : null}
               </button>
             );
@@ -740,43 +911,72 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               </button>
             </div>
           ) : null}
-          {savedViews.map((view) => (
-            <button
-              key={view.id}
-              className={cn("nav-item", activeView === view.id && "is-active")}
-              onClick={() => {
-                setActiveView(view.id);
-                setActiveCustomView(null);
-                setMobileNavOpen(false);
-              }}
-            >
-              <span
-                className="saved-dot"
-                style={{ backgroundColor: view.color }}
-              />
-              <span>{view.label}</span>
-            </button>
-          ))}
+          {!paperlessConnected
+            ? savedViews.map((view) => (
+                <button
+                  key={view.id}
+                  className={cn(
+                    "nav-item",
+                    activeView === view.id && "is-active",
+                  )}
+                  onClick={() => {
+                    setActiveView(view.id);
+                    setActiveCustomView(null);
+                    setMobileNavOpen(false);
+                  }}
+                >
+                  <span
+                    className="saved-dot"
+                    style={{ backgroundColor: view.color }}
+                  />
+                  <span>{view.label}</span>
+                </button>
+              ))
+            : null}
           {customViews.map((view) => (
-            <button
-              key={view.id}
-              className={cn(
-                "nav-item",
-                activeCustomView === view.id && "is-active",
-              )}
-              onClick={() => {
-                setActiveView("all");
-                setActiveCustomView(view.id);
-                setMobileNavOpen(false);
-              }}
-            >
-              <span className="saved-dot custom-dot" />
-              <span>{view.label}</span>
-            </button>
+            <div className="saved-view-row" key={view.id}>
+              <button
+                className={cn(
+                  "nav-item",
+                  activeCustomView === view.id && "is-active",
+                )}
+                onClick={() => applySavedView(view)}
+              >
+                <span className="saved-dot custom-dot" />
+                <span>{view.label}</span>
+              </button>
+              <span className="saved-view-actions">
+                <button
+                  aria-label={`Rename ${view.label}`}
+                  onClick={() => renameSavedView(view)}
+                >
+                  Rename
+                </button>
+                <button
+                  aria-label={`Delete ${view.label}`}
+                  onClick={() => deleteSavedView(view)}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            </div>
           ))}
         </div>
 
         <div className="sidebar-footer">
+          <UploadActivity
+            open={activityOpen}
+            activities={uploadActivity.activities}
+            onToggle={() => {
+              setActivityOpen((current) => !current);
+              setHelpOpen(false);
+              setAccountOpen(false);
+            }}
+            onDismiss={uploadActivity.dismiss}
+            onClearCompleted={uploadActivity.clearCompleted}
+            onRetry={uploadActivity.retry}
+            onOpenDocument={chooseDocument}
+          />
           <div className="sidebar-popover-wrap">
             <button
               className="nav-item"
@@ -952,7 +1152,9 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                 ? "Review queue"
                 : "Library"}
             </p>
-            <h1>{viewLabels[activeView]}</h1>
+            <h1>
+              {activeView === "review" ? reviewTag : viewLabels[activeView]}
+            </h1>
           </div>
           <div className="toolbar-actions">
             <span>
@@ -1076,7 +1278,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                   <span className="document-row-topline">
                     <strong>{document.title}</strong>
                     {document.status === "review" ? (
-                      <span className="review-dot" title="Needs review" />
+                      <span className="review-dot" title={reviewTag} />
                     ) : null}
                   </span>
                   <span className="document-correspondent">
@@ -1327,6 +1529,19 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                 </div>
               </div>
 
+              {!selected.canEdit ? (
+                <div className="read-only-notice" role="note">
+                  <CircleHelp size={15} />
+                  <div>
+                    <strong>Read-only document</strong>
+                    <span>
+                      The configured Paperless account can view this document
+                      but cannot change it.
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
               {selected.status === "review" ? (
                 <div className="review-callout">
                   <span className="spark-icon">
@@ -1350,6 +1565,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                   label="Correspondent"
                   value={selected.correspondent}
                   options={correspondentOptions}
+                  disabled={!selected.canEdit}
                   onChange={(value) =>
                     persistDocument({ correspondent: value })
                   }
@@ -1358,6 +1574,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                   label="Document type"
                   value={selected.documentType}
                   options={documentTypeOptions}
+                  disabled={!selected.canEdit}
                   onChange={(value) => persistDocument({ documentType: value })}
                 />
                 <div className="metadata-row">
@@ -1366,6 +1583,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                     className="metadata-value date-value"
                     type="date"
                     value={toDateInputValue(selected.created)}
+                    disabled={!selected.canEdit}
                     onChange={(event) =>
                       persistDocument({ created: event.target.value })
                     }
@@ -1382,6 +1600,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                       className="section-add"
                       aria-expanded={tagMenuOpen}
                       aria-controls="tag-menu"
+                      disabled={!selected.canEdit}
                       onClick={() => setTagMenuOpen((current) => !current)}
                     >
                       <Plus size={14} />
@@ -1409,6 +1628,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                       {tag}
                       <button
                         onClick={() => removeTag(tag)}
+                        disabled={!selected.canEdit}
                         aria-label={`Remove ${tag}`}
                       >
                         <X size={11} />
@@ -1417,6 +1637,13 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                   ))}
                 </div>
               </div>
+
+              <CustomFieldsEditor
+                definitions={customFieldDefinitions}
+                fields={selected.customFields ?? []}
+                canEdit={selected.canEdit}
+                onChange={persistCustomFields}
+              />
 
               <div className="inspector-section">
                 <h3>Document</h3>
@@ -1439,7 +1666,11 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
 
             <div className="inspector-footer">
               {selected.status === "review" ? (
-                <Button variant="primary" onClick={markReviewed}>
+                <Button
+                  variant="primary"
+                  onClick={markReviewed}
+                  disabled={!selected.canEdit}
+                >
                   <Check size={16} />
                   Mark as reviewed
                 </Button>
@@ -1447,11 +1678,15 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
                 <Button
                   variant="secondary"
                   onClick={() => persistDocument({ status: "review" })}
+                  disabled={!selected.canEdit}
                 >
                   <RotateCw size={15} />
                   Return to review
                 </Button>
               )}
+              {loadingDetail ? (
+                <span className="detail-loading">Refreshing details…</span>
+              ) : null}
             </div>
           </aside>
         </div>
@@ -1538,16 +1773,33 @@ function isEditableTarget(target: EventTarget | null) {
   );
 }
 
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "error" in error &&
+    error.error &&
+    typeof error.error === "object" &&
+    "message" in error.error &&
+    typeof error.error.message === "string"
+  ) {
+    return error.error.message;
+  }
+  return fallback;
+}
+
 function MetadataSelect({
   label,
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="metadata-row">
@@ -1555,6 +1807,7 @@ function MetadataSelect({
       <span className="select-wrap">
         <select
           value={value}
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
         >
           {options.map((option) => (
