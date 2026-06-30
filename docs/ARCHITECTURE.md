@@ -23,9 +23,10 @@ replaced by a future identity provider without changing the Paperless adapter.
 
 ### UI workspace
 
-`components/document-workspace.tsx` owns the current document workspace:
-navigation, search, pagination, selection, preview state, metadata editing,
-upload, and review actions.
+`components/document-workspace.tsx` coordinates navigation, search, pagination,
+selection, and preview state. Stable inspector and upload responsibilities live
+in focused components, while URL, saved-view, and upload persistence rules live
+in independently tested modules under `lib`.
 
 This is intentionally a single obvious entry point today. Extract a component
 when it has a stable responsibility or meaningful independent behavior, not only
@@ -53,6 +54,14 @@ Keep Paperless-specific field names and authentication in this layer. UI
 components should use the types in `lib/types.ts`. Shared upstream
 configuration, authentication, and timeouts live in `lib/paperless-api.ts`;
 query translation lives in `lib/paperless-query.ts`.
+
+Runtime response validation and document mapping live in the Paperless contract
+and adapter modules. Upstream errors are translated into a stable Studio error
+envelope before reaching the browser.
+
+Uploads return a Paperless task UUID. Studio polls its same-origin task route
+and stores recent activity in browser local storage; Paperless remains the
+source of truth for consumption and OCR.
 
 ### Offline UI mode
 

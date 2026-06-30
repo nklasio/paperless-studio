@@ -10,6 +10,8 @@ while providing a fast workspace for finding and reviewing documents.
 > [!IMPORTANT] Paperless Studio is an independent community project and is not
 > affiliated with or endorsed by the paperless-ngx project.
 
+![Paperless Studio document workspace](docs/images/workspace.png)
+
 ## Features
 
 - Inbox, recently added, and needs-review views
@@ -17,7 +19,9 @@ while providing a fast workspace for finding and reviewing documents.
 - PDF preview and page navigation
 - Correspondent, document type, created date, and tag editing
 - Drag-and-drop document upload
+- Persistent upload activity with OCR/consumption status
 - Review workflow backed by a `Needs review` Paperless tag
+- Paperless custom-field assignment and editing
 - Saved views, responsive navigation, and keyboard shortcuts
 - Server-side API proxying so the Paperless token is not sent to the browser
 
@@ -65,6 +69,7 @@ services:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
       PAPERLESS_PUBLIC_URL: ${PAPERLESS_PUBLIC_URL}
+      PAPERLESS_REVIEW_TAG: ${PAPERLESS_REVIEW_TAG:-Needs review}
       PAPERLESS_STUDIO_USERNAME: ${PAPERLESS_STUDIO_USERNAME}
       PAPERLESS_STUDIO_PASSWORD: ${PAPERLESS_STUDIO_PASSWORD}
       PAPERLESS_STUDIO_SESSION_SECRET: ${PAPERLESS_STUDIO_SESSION_SECRET}
@@ -79,6 +84,7 @@ Add the token to the `.env` file used by Docker Compose:
 ```env
 PAPERLESS_STUDIO_TOKEN=replace-with-your-api-token
 PAPERLESS_PUBLIC_URL=https://paperless.example.com
+PAPERLESS_REVIEW_TAG=Needs review
 PAPERLESS_STUDIO_USERNAME=studio
 PAPERLESS_STUDIO_PASSWORD=replace-with-a-strong-password
 PAPERLESS_STUDIO_SESSION_SECRET=replace-with-at-least-32-random-characters
@@ -110,6 +116,7 @@ services:
       PAPERLESS_URL: http://webserver:8000
       PAPERLESS_TOKEN: ${PAPERLESS_STUDIO_TOKEN}
       PAPERLESS_PUBLIC_URL: ${PAPERLESS_PUBLIC_URL}
+      PAPERLESS_REVIEW_TAG: ${PAPERLESS_REVIEW_TAG:-Needs review}
       PAPERLESS_STUDIO_USERNAME: ${PAPERLESS_STUDIO_USERNAME}
       PAPERLESS_STUDIO_PASSWORD: ${PAPERLESS_STUDIO_PASSWORD}
       PAPERLESS_STUDIO_SESSION_SECRET: ${PAPERLESS_STUDIO_SESSION_SECRET}
@@ -132,6 +139,7 @@ tagging and image-version policy.
 | `PAPERLESS_PUBLIC_URL`            | No            | Browser-facing Paperless URL for “Show in Paperless”              |
 | `PAPERLESS_REQUEST_TIMEOUT_MS`    | No            | Upstream request timeout in milliseconds; defaults to `15000`     |
 | `PAPERLESS_MAX_UPLOAD_SIZE_MB`    | No            | Maximum accepted upload size in MiB; defaults to `100`            |
+| `PAPERLESS_REVIEW_TAG`            | No            | Review queue tag name; defaults to `Needs review`                 |
 | `PAPERLESS_STUDIO_USERNAME`       | No            | Enables the local account when set with the other auth variables  |
 | `PAPERLESS_STUDIO_PASSWORD`       | No            | Password for the local account                                    |
 | `PAPERLESS_STUDIO_SESSION_SECRET` | No            | Random session-signing secret of at least 32 characters           |
@@ -177,7 +185,8 @@ dedicated Paperless account with the least privileges you need. See
 [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for the security model and
 future provider path.
 
-See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+See [SECURITY.md](SECURITY.md) for vulnerability reporting. For a guided first
+review and upload, see the [first-run guide](docs/FIRST_RUN.md).
 
 ## Development
 
@@ -186,6 +195,7 @@ npm install          # install the locked dependency set
 npm run dev          # start the development server
 npm run lint         # run Next.js, React, and accessibility lint rules
 npm test             # run the unit test suite once
+npm run test:e2e     # run fixture-backed browser workflows
 npm run format:check # verify repository formatting
 npm run typecheck    # run TypeScript without emitting files
 npm run build        # create a production build
