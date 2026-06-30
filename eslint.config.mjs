@@ -13,5 +13,13 @@ export default defineConfig([
     },
   },
   prettier,
-  globalIgnores([".next/**", "out/**", "coverage/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    ".next-e2e/**",
+    "out/**",
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    "next-env.d.ts",
+  ]),
 ]);
