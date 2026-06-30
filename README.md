@@ -186,7 +186,8 @@ dedicated Paperless account with the least privileges you need. See
 future provider path.
 
 See [SECURITY.md](SECURITY.md) for vulnerability reporting. For a guided first
-review and upload, see the [first-run guide](docs/FIRST_RUN.md).
+review and upload, see the [first-run guide](docs/FIRST_RUN.md). The proposed
+v0.3 organization model is documented in the [folder concept](docs/FOLDERS.md).
 
 ## Development
 

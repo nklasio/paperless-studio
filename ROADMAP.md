@@ -31,6 +31,10 @@ server-backed queue from any browser.
 - **Paperless saved views:** Read, create, rename, update, and delete saved
   views through the Paperless API. Offer a one-time import for Studio's local
   v0.2 views and retain local views only in demo mode.
+- **Virtual folders:** Add a nested Finder-like navigation layer with manual
+  folders backed by prefixed Paperless tags and smart folders backed by saved
+  views. Folder actions never modify Paperless storage paths. See the
+  [folder concept](docs/FOLDERS.md).
 - **Review queue builder:** Let saved views become named review queues with
   configurable completion actions. The default remains removing the configured
   review tag; additional queues may remove or add specific tags.
@@ -61,10 +65,12 @@ server-backed queue from any browser.
 ### Delivery slices
 
 1. Paperless saved-view adapter, local-view import, and demo-mode fallback.
-2. Selection model and accessible list/grid interaction without mutations.
-3. Bulk metadata/review API, confirmation UI, task activity, and rollback.
-4. Type-aware custom-field filters and shareable URL serialization.
-5. Document notes, session activity, browser coverage, and release polish.
+2. Manual and smart folder adapters, hierarchy navigation, and permission-safe
+   membership actions.
+3. Selection model and accessible list/grid interaction without mutations.
+4. Bulk metadata/review API, confirmation UI, task activity, and rollback.
+5. Type-aware custom-field filters and shareable URL serialization.
+6. Document notes, session activity, browser coverage, and release polish.
 
 Each slice should be a focused issue and pull request that leaves the full
 repository check green.
@@ -77,6 +83,8 @@ repository check green.
   outcomes and never silently lose failures.
 - Saved views and review queues survive browser changes because Paperless is the
   source of truth.
+- Manual and smart folders survive browser changes, aggregate descendants
+  correctly, and never alter Paperless storage paths.
 - Custom-field filters round-trip through the URL and produce the same Paperless
   query after refresh.
 - Selection, confirmation, and recovery are usable with keyboard, touch, 200%
