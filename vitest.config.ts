@@ -8,6 +8,11 @@ export default defineConfig({
     },
   },
   test: {
-    exclude: ["node_modules/**", ".next/**", "tests/e2e/**"],
+    exclude: [
+      "node_modules/**",
+      ".next/**",
+      "tests/e2e/**",
+      "tests/screenshots/**",
+    ],
   },
 });
