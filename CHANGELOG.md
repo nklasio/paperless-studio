@@ -5,6 +5,28 @@ All notable changes to Paperless Studio are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and the
 project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Persistent, resumable Paperless upload activity with consumption status.
+- Paperless custom-field assignment and scalar-field editing.
+- Restorable workspace URLs and versioned saved views with rename and delete.
+- Fixture-backed Playwright workflows and automated accessibility checks.
+
+### Changed
+
+- Paperless API responses are validated at runtime and failures use actionable,
+  typed error responses.
+- Review queues can use a configurable Paperless tag.
+- Document permissions now produce a clear read-only inspector.
+- Authentication verification is isolated behind a provider boundary.
+
+### Fixed
+
+- Pressing Enter in the password field reliably submits the login form.
+- Existing low-contrast interface text now meets WCAG AA requirements.
+
 ## [0.1.0] - 2026-06-28
 
 ### Added

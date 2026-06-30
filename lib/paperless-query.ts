@@ -13,13 +13,13 @@ export type DocumentQueryInput = {
   correspondent?: string;
   documentType?: string;
   tag?: string;
+  reviewTag?: string;
 };
 
 const savedViewTags: Record<string, string[]> = {
   finance: ["Finance", "Finanzen"],
   personal: ["Personal", "Privatkunden"],
   work: ["Business", "Geschäftlich"],
-  review: ["Needs review"],
 };
 
 function matchingIds(items: PaperlessMetadataItem[], names: string[]) {
@@ -48,7 +48,12 @@ export function buildDocumentQuery(
   }
 
   if (input.view === "inbox") params.set("is_in_inbox", "true");
-  const viewTagNames = input.view ? savedViewTags[input.view] : undefined;
+  const viewTagNames =
+    input.view === "review"
+      ? [input.reviewTag ?? "Needs review"]
+      : input.view
+        ? savedViewTags[input.view]
+        : undefined;
   if (viewTagNames) {
     const ids = matchingIds(tags, viewTagNames);
     if (!ids.length) return { params, hasMatches: false };

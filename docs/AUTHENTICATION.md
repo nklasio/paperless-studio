@@ -44,10 +44,10 @@ remote access so the session cookie receives its `Secure` attribute.
 
 ## Intended evolution
 
-The UI and Paperless adapter depend only on the result of Studio authentication,
-not on its credential source. A future authentication provider can therefore
-replace the local account with OIDC, an authenticated reverse proxy header, or
-multiple persisted users while retaining the same session boundary.
+The local account implements Studio's small authentication-provider interface.
+The UI and Paperless adapter depend only on the resulting identity, not its
+credential source. A future provider can therefore replace credential
+verification while retaining the same signed-session boundary.
 
 Before adding multiple users, define how each Studio identity maps to a
 Paperless identity. The current shared Paperless token means every Studio user

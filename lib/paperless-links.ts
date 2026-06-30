@@ -22,3 +22,15 @@ export function paperlessDocumentUrl(
     return undefined;
   }
 }
+
+export function studioDocumentPath(documentId: unknown) {
+  if (
+    typeof documentId !== "number" ||
+    !Number.isSafeInteger(documentId) ||
+    documentId < 1
+  ) {
+    return undefined;
+  }
+
+  return `/documents/${encodeURIComponent(String(documentId))}`;
+}

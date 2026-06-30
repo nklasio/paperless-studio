@@ -25,7 +25,7 @@ export function paperlessFetch(
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Token ${config.token}`);
   if (!headers.has("Accept")) {
-    headers.set("Accept", "application/json; version=1");
+    headers.set("Accept", "application/json; version=9");
   }
 
   return fetch(`${config.url}${path}`, {

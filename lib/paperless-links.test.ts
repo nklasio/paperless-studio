@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paperlessDocumentUrl } from "./paperless-links";
+import { paperlessDocumentUrl, studioDocumentPath } from "./paperless-links";
 
 describe("paperlessDocumentUrl", () => {
   it("builds the current Paperless document-detail route", () => {
@@ -19,5 +19,13 @@ describe("paperlessDocumentUrl", () => {
     expect(
       paperlessDocumentUrl("https://user:secret@example.com", 42),
     ).toBeUndefined();
+  });
+});
+
+describe("studioDocumentPath", () => {
+  it("only builds paths for positive integer document IDs", () => {
+    expect(studioDocumentPath(42)).toBe("/documents/42");
+    expect(studioDocumentPath("javascript:alert(1)")).toBeUndefined();
+    expect(studioDocumentPath(-1)).toBeUndefined();
   });
 });

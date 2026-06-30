@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  apiError,
+  errorFromUpstream,
+  responseForError,
+} from "@/lib/api-errors";
 import { requireDocumentAuthentication } from "@/lib/auth-route";
 import {
   paperlessConfiguration,
@@ -14,29 +19,33 @@ export async function GET(
   if (authenticationFailure) return authenticationFailure;
 
   if (!paperlessConfiguration()) {
-    return NextResponse.json(
-      { error: "Paperless is not configured" },
-      { status: 503 },
-    );
+    return apiError("not_configured", "Paperless is not configured.", 503);
   }
 
   const { id } = await params;
   if (!validPaperlessId(id)) {
-    return NextResponse.json({ error: "Invalid document ID" }, { status: 400 });
+    return apiError("validation_failed", "Invalid document ID.", 400);
   }
 
-  const response = await paperlessFetch(`/api/documents/${id}/download/`, {
-    cache: "no-store",
-  });
+  try {
+    const response = await paperlessFetch(`/api/documents/${id}/download/`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw errorFromUpstream(response, "Could not download the document.");
+    }
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: {
-      "Content-Type":
-        response.headers.get("Content-Type") ?? "application/octet-stream",
-      "Content-Disposition":
-        response.headers.get("Content-Disposition") ??
-        `attachment; filename="document-${id}.pdf"`,
-    },
-  });
+    return new NextResponse(response.body, {
+      status: response.status,
+      headers: {
+        "Content-Type":
+          response.headers.get("Content-Type") ?? "application/octet-stream",
+        "Content-Disposition":
+          response.headers.get("Content-Disposition") ??
+          `attachment; filename="document-${id}.pdf"`,
+      },
+    });
+  } catch (error) {
+    return responseForError(error);
+  }
 }

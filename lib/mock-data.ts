@@ -12,6 +12,7 @@ export const documents: PaperlessDocument[] = [
     pages: 2,
     format: "PDF",
     status: "review",
+    canEdit: true,
     accent: "blue",
   },
   {
@@ -25,6 +26,7 @@ export const documents: PaperlessDocument[] = [
     pages: 3,
     format: "PDF",
     status: "review",
+    canEdit: true,
     accent: "ochre",
   },
   {
@@ -38,6 +40,7 @@ export const documents: PaperlessDocument[] = [
     pages: 1,
     format: "PDF",
     status: "review",
+    canEdit: true,
     accent: "sage",
   },
   {
@@ -51,6 +54,7 @@ export const documents: PaperlessDocument[] = [
     pages: 5,
     format: "PDF",
     status: "ready",
+    canEdit: true,
     accent: "plum",
   },
   {
@@ -64,6 +68,7 @@ export const documents: PaperlessDocument[] = [
     pages: 4,
     format: "PDF",
     status: "ready",
+    canEdit: true,
     accent: "slate",
   },
   {
@@ -77,6 +82,7 @@ export const documents: PaperlessDocument[] = [
     pages: 12,
     format: "PDF",
     status: "ready",
+    canEdit: true,
     accent: "ochre",
   },
 ];
