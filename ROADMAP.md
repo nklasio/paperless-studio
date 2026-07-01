@@ -61,6 +61,12 @@ server-backed queue from any browser.
   the browser.
 - Isolate saved-view translation, custom-field query construction, notes, and
   bulk-task mapping as independently tested adapter modules.
+- Add structured operational logs to stdout for API failures and upstream
+  Paperless requests. Include a correlation ID, route, status, duration, error
+  code, retryability, and upstream status while excluding tokens, cookies,
+  search terms, filenames, document titles, OCR content, and field values.
+- Document practical Docker and Compose log commands and keep normal production
+  output quiet enough that warnings and failures remain actionable.
 
 ### Delivery slices
 
@@ -70,7 +76,8 @@ server-backed queue from any browser.
 3. Selection model and accessible list/grid interaction without mutations.
 4. Bulk metadata/review API, confirmation UI, task activity, and rollback.
 5. Type-aware custom-field filters and shareable URL serialization.
-6. Document notes, session activity, browser coverage, and release polish.
+6. Sanitized operational logging, deployment diagnostics, and Docker guidance.
+7. Document notes, session activity, browser coverage, and release polish.
 
 Each slice should be a focused issue and pull request that leaves the full
 repository check green.
@@ -92,6 +99,9 @@ repository check green.
 - Fixture-backed browser tests cover bulk success, partial failure, stale
   permissions, saved-view migration, queue completion, notes, and narrow mobile
   layouts.
+- Container logs identify failed Studio and Paperless requests without exposing
+  credentials or document data, and related events can be traced by correlation
+  ID.
 - The release image is rehearsed against the current supported paperless-ngx API
   on both published architectures.
 
