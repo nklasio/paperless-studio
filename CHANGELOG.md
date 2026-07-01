@@ -7,6 +7,15 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-01
+
+### Fixed
+
+- Paperless documents with an unresolved `page_count` no longer prevent the
+  document collection from loading.
+
+## [0.2.0] - 2026-06-30
+
 ### Added
 
 - Persistent, resumable Paperless upload activity with consumption status.
@@ -62,4 +71,7 @@ project follows [Semantic Versioning](https://semver.org/).
 - CI checks formatting, linting, unit tests, TypeScript, production builds, and
   the container image.
 
+[Unreleased]: https://github.com/nklasio/paperless-studio/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/nklasio/paperless-studio/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/nklasio/paperless-studio/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nklasio/paperless-studio/releases/tag/v0.1.0
