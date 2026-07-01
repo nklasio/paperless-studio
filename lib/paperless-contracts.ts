@@ -54,7 +54,7 @@ export const paperlessDocumentSchema = z.object({
   tags: z.array(z.number().int().positive()),
   created: z.string(),
   added: z.string(),
-  page_count: z.number().int().nonnegative().optional(),
+  page_count: z.number().int().nonnegative().nullish(),
   original_file_name: z.string().nullish(),
   user_can_change: z.boolean().optional().default(true),
   custom_fields: z.array(customFieldInstanceSchema).optional().default([]),
