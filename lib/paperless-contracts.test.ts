@@ -32,4 +32,19 @@ describe("Paperless contracts", () => {
     expect(() => paperlessDocumentSchema.parse({ id: "1" })).toThrow();
     expect(() => taskSchema.parse({ task_id: 3 })).toThrow();
   });
+
+  it("accepts documents without a resolved page count", () => {
+    expect(
+      paperlessDocumentSchema.parse({
+        id: 1,
+        title: "Processing document",
+        correspondent: null,
+        document_type: null,
+        tags: [],
+        created: "2026-06-30",
+        added: "2026-06-30T10:00:00Z",
+        page_count: null,
+      }).page_count,
+    ).toBeNull();
+  });
 });
