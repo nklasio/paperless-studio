@@ -7,6 +7,16 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-15
+
+### Changed
+
+- Redesigned the document workspace with a more readable typography and surface
+  system, balanced pane sizing, and calmer selection states.
+- Added a contextual document toolbar, improved preview controls, and roomier
+  inline metadata editing.
+- Added dedicated Preview and Details tabs to the mobile document experience.
+
 ## [0.2.1] - 2026-07-01
 
 ### Fixed
@@ -71,7 +81,8 @@ project follows [Semantic Versioning](https://semver.org/).
 - CI checks formatting, linting, unit tests, TypeScript, production builds, and
   the container image.
 
-[Unreleased]: https://github.com/nklasio/paperless-studio/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/nklasio/paperless-studio/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/nklasio/paperless-studio/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/nklasio/paperless-studio/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/nklasio/paperless-studio/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nklasio/paperless-studio/releases/tag/v0.1.0
