@@ -155,6 +155,9 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(
     initialDocumentId !== undefined,
   );
+  const [mobileDetailPanel, setMobileDetailPanel] = useState<
+    "preview" | "details"
+  >("preview");
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -592,6 +595,7 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
     setSelectedId(id);
     if (document) setSelectedDocument(document);
     setMobileDetailOpen(true);
+    setMobileDetailPanel("preview");
     const state: WorkspaceUrlState = {
       view: activeView,
       query: debouncedQuery,
@@ -1382,6 +1386,10 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
               <ChevronRight size={17} />
             </button>
           </div>
+          <div className="preview-context" aria-live="polite">
+            <span>Document</span>
+            <strong>{selected.title}</strong>
+          </div>
           <div className="preview-actions">
             <Button
               variant="ghost"
@@ -1470,10 +1478,39 @@ export function DocumentWorkspace({ initialDocumentId, authUsername }: Props) {
         </header>
 
         <div
+          className="mobile-detail-tabs"
+          role="tablist"
+          aria-label="Document view"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileDetailPanel === "preview"}
+            className={mobileDetailPanel === "preview" ? "is-active" : ""}
+            onClick={() => setMobileDetailPanel("preview")}
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileDetailPanel === "details"}
+            className={mobileDetailPanel === "details" ? "is-active" : ""}
+            onClick={() => {
+              setMobileDetailPanel("details");
+              setInspectorOpen(true);
+            }}
+          >
+            Details
+          </button>
+        </div>
+
+        <div
           ref={previewStageRef}
           className={cn(
             "preview-stage",
             !inspectorOpen && "preview-stage--wide",
+            mobileDetailPanel === "details" && "mobile-details-open",
           )}
         >
           <div ref={paperWrapRef} className="paper-wrap">
