@@ -15,4 +15,13 @@ test("keeps core workflows available on mobile", async ({ page }) => {
     .click();
   await page.getByText("Fixture invoice · June").first().click();
   await expect(page.getByLabel("Back to documents")).toBeVisible();
+  const detailsTab = page.getByRole("tab", { name: "Details" });
+  await expect(detailsTab).toBeVisible();
+  await detailsTab.click();
+  await expect(detailsTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText("Correspondent")).toBeVisible();
+  await page.getByRole("tab", { name: "Preview" }).click();
+  await expect(
+    page.getByTitle("Page 1 of Fixture invoice · June"),
+  ).toBeVisible();
 });
