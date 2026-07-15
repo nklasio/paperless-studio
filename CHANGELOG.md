@@ -7,6 +7,11 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Container releases now build AMD64 and ARM64 images on native runners instead
+  of relying on QEMU emulation.
+
 ## [0.2.2] - 2026-07-15
 
 ### Changed
