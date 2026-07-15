@@ -1,6 +1,6 @@
 {
   "name": "paperless-studio",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A focused document workspace for paperless-ngx.",
   "private": true,
   "license": "GPL-3.0-only",

@@ -7,6 +7,8 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-07-15
+
 ### Fixed
 
 - Container releases now build AMD64 and ARM64 images on native runners instead
